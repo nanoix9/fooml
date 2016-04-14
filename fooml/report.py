@@ -23,8 +23,18 @@ class TxtReporter(object):
         self._check_level(level)
         self.level = level
 
-    def report(self, msg):
+    def report(self, msgs):
         prefix = self.prefix * self.level
+        self._report_recur(msgs, prefix)
+
+    def _report_recur(self, msgs, prefix):
+        if hasattr(msgs, '__iter__'):
+            for m in msgs:
+                self._report_recur(m, self.prefix + prefix)
+        else:
+            self.report_str(str(msgs), prefix)
+
+    def report_str(self, msg, prefix):
         print(prefix + msg.replace('\n', '\n' + prefix), file=self._out)
 
     def _check_level(self, level):

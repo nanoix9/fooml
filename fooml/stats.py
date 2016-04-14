@@ -9,8 +9,11 @@ def summary(data):
     if isinstance(data, dataset.ds_xy_t):
         xdesc = _summary(data.X)
         ydesc = _summary(data.y)
-        desc = 'summary of target y:\n%s\nsummary of feature X:\n%s\n' % \
-                (ydesc, xdesc)
+        desc = ['summary of target y:',
+                ydesc,
+                'summary of feature X:',
+                xdesc,
+                ]
     else:
         desc = _summary(data)
     return desc
@@ -38,7 +41,7 @@ def _summary(data):
     df = pd.DataFrame(data)
     dn = df.describe().transpose()
     dc = desc_cate(df)
-    return 'take as numeric type:\n%s\ntake as category type:\n%s' % (dn, dc)
+    return ['take as numeric type:', str(dn), 'take as category type:', str(dc)]
 
 
 class CateDesc(object):
