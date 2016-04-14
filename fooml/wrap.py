@@ -2,12 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import sys
-import fooml
-
+def create_classifier(clf):
+    return
 
 def main():
-    foo = fooml.FooML()
-    foo.run()
     return
 
 if __name__ == '__main__':
