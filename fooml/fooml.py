@@ -21,6 +21,11 @@ class FooML(object):
         self._exec = executor.Executor(self._reporter)
         self._target = None
 
+    def use_data(self, data):
+        name = data
+        ds = dataset.load_data(data)
+        self.add_data(ds, name=name)
+
     def add_data(self, data, test=None, name='data'):
         if isinstance(data, (str, unicode)):
             name = data
@@ -94,8 +99,13 @@ class FooML(object):
 
 def __test1():
     foo = FooML()
-    foo.add_data('iris')
+    foo.use_data('iris')
+    foo.add_cutter('adapt', input='iris')
+    foo.add_fsel('Kbest', output='x')
     foo.add_classifier('LR')
+    foo.add_classifier('RandomForest', input='x')
+    foo.cross_validate('K', k=4)
+    foo.evaluate('AUC')
     foo.run()
 
 def main():
