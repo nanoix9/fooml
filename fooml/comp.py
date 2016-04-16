@@ -49,6 +49,7 @@ _entry = c.namedtuple('_entry', 'comp, inp, out')
 class GraphComp(object):
 
     def __init__(self, name, inp, out):
+        self.name = name
         self._graph = nx.DiGraph()
         self._inp = inp
         self._out = out
@@ -78,13 +79,26 @@ class GraphComp(object):
         self._comps[name] = _entry(acomp, inp, out)
         self._add_nodes(inp)
         self._add_nodes(out)
-        self._add_edges(inp, out, name=name)
+        self._add_edges(inp, out, name=name, comp=acomp)
         return self
 
     def __str__(self):
-        return '<%s>[Nodes:%s, Edges:%s, Components:%s]' % \
-                (self.__class__.__name__, self._graph.nodes(), self._graph.edges(), \
-                self._str_comps())
+        return '<%s>[Input:%s, Output:%s, Nodes:%s, Edges:%s, Components:%s]' % \
+                (self.__class__.__name__, self._inp, self._out, \
+                 self._graph.nodes(), \
+                 self._str_edges_with_attr(), \
+                 self._str_comps())
+
+    def _str_edges_with_attr(self, attr='name'):
+        return str(self._edges_with_attr(attr=attr))
+
+    def _edges_with_attr(self, nbunch=None, attr='name'):
+        if isinstance(attr, (list, tuple)):
+            get = lambda f, t, attr: tuple([self._graph[f][t][a] for a in attr])
+        else:
+            get = lambda f, t, attr: (self._graph[f][t][attr],)
+        ls = [(f, t) + get(f, t, attr) for f, t in self._graph.edges_iter(nbunch=nbunch)]
+        return ls
 
     def _str_comps(self):
         slist = []
