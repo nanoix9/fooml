@@ -39,10 +39,76 @@ class Serial(_CompList):
         super(Serial, self).__init__(name)
         #self._objs = []
 
+
 class Comp(object):
 
     def __init__(self, obj):
         self._obj = obj
+
+class LambdaComp(Comp):
+
+    def __init__(self, obj, fit, trans, fit_trans=None):
+        super(LambdaComp, self).__init__(obj)
+        self._fit = fit
+        self._trans = trans
+        if fit_trans is not None:
+            self._fit_trans = fit_trans
+        else:
+            self._fit_trans = self._default_fit_trans
+
+    def fit(self, data):
+        if self._fit is not None:
+            return self._fit(self._obj, data)
+        return None
+
+    def trans(self, data):
+        print '>>>> trans of comp lambda:', self._obj, data
+        #print self._trans(self._obj, data)
+        return self._trans(self._obj, data)
+
+    def fit_trans(self, data):
+        print '>>>> fit_trans of lambda comp:', self._obj, data
+        return self._fit_trans(self._obj, data)
+
+    def _default_fit_trans(self, _, data):
+        self.fit(data)
+        return self.trans(data)
+
+class StatelessComp(Comp):
+
+    def __init__(self, obj):
+        super(StatelessComp, self).__init__(obj)
+
+    def fit(self, data):
+        return None
+
+    def fit_trans(self, data):
+        #print '>>>> fit_trans of stateless comp:', self._obj, data
+        return self.trans(data)
+
+class PassComp(StatelessComp):
+
+    def __init__(self):
+        super(PassComp, self).__init__('fake_obj')
+
+    def trans(self, data):
+        print '>>>> trans of comp pass through:', self._obj, data
+        return data
+
+    def fit_trans(self, data):
+        print '>>>> fit_trans of comp pass through:', self._obj, data
+        return data
+
+class ConstComp(StatelessComp):
+
+    def __init__(self, const=None):
+        super(ConstComp, self).__init__(None)
+        self._const = const
+
+    def trans(self, data):
+        print '>>>> trans of comp const:', self._obj, data
+        return self._const
+
 
 _entry = c.namedtuple('_entry', 'comp, inp, out')
 
@@ -103,7 +169,7 @@ class GraphComp(object):
     def _str_comps(self):
         slist = []
         for name, c in self._comps.iteritems():
-            slist.append('\'%s\':%s' % (name, str(c.comp)))
+            slist.append('\'%s\':%s' % (name, str(c)))
         return '{%s}' % ', '.join(slist)
 
 def test_graph():
