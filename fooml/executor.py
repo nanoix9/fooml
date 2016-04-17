@@ -127,6 +127,53 @@ class Executor(object):
     def _train_one(self, basic_comp, data):
         return basic_comp.fit_trans(data)
 
+    def compile_graph(self, graph):
+        ''' compile a graph to a sequence of computations
+        a computation includes:
+            - name
+            - computing object
+            - input buffer: storing input datasets temporarily.
+                should be all available before computation starts
+                will be cleaned if computation done
+            - output: send the output to all computation units that need it
+        '''
+        return self._dfs(graph)
+
+    def _dfs(self, graph):
+        data = [1 for i in iter_maybe_list(graph._inp)]
+        buff = self._graph_comp_to_input(graph)
+        out_buff = {o: None for o in iter_maybe_list(graph._out)}
+        print buff
+        self.__emit_data(data, graph._inp, graph, buff, out_buff)
+        stack = _to_list(graph._inp, copy=True)
+        while stack:
+            curr_node = stack.pop()
+            self._report('Dataset "%s" in graph "%s" is ready' \
+                    % (curr_node, graph.name))
+            for f, t, comp_name, acomp in graph._edges_with_attr(curr_node, attr=('name', 'comp')):
+                print f, t, comp_name, acomp
+                curr_input = buff[comp_name]
+                entry = graph._comps[comp_name] 
+                if self.__is_inputs_ready(curr_input):
+                    self._report('training component "%s" in graph "%s" ...' \
+                            % (comp_name, graph.name))
+                    real_input_data = self.__make_real_input(curr_input, entry.inp)
+                    print '>>> train:', acomp, real_input_data
+                    out = self._train_component(acomp, real_input_data)
+                    print '>>> train out:', out 
+                    self.__clear_inputs(curr_input)
+                    #out_names = _to_list(entry.out)
+                    self.__emit_data(out, entry.out, graph, buff, out_buff)
+                    stack.extend(_to_list(entry.out))
+                    print '>>> out of graph:', out_buff
+        if any(d is None for n, d in out_buff.iteritems()):
+            raise ValueError('Output did not get an value: %s' \
+                % filter(lambda n: out_buff[n] is None, out_buff.keys()))
+        ret = gets_from_dict(out_buff, graph._out)
+        print('final output: %s' % ret)
+        return ret
+
+
 
     def _report_levelup(self):
         self._reporter.levelup()
@@ -205,7 +252,8 @@ def test_exec():
 
     import report
     exe = Executor(report.TxtReporter())
-    exe.run_train(gcomp, [(11,22), {'a':100, 10:200}])
+    #exe.run_train(gcomp, [(11,22), {'a':100, 10:200}])
+    exe.compile(gcomp)
 
 def main():
     #test_maybe_list()
