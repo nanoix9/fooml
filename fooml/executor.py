@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+#from __future__ import print_function
+
 import sys
 import comp
 import collections as c
@@ -8,9 +10,14 @@ import collections as c
 
 class Executor(object):
 
+    __INPUT__ = '__INPUT__'
+    __OUTPUT__ = '__OUTPUT__'
+
     def __init__(self, reporter):
         self._reporter = reporter
         #self._comp = comp.Serial()
+        self._oimap = None
+        self._task_seq = None
 
     def add_component(self, obj, name=None, func=None):
         if not isinstance(obj, comp.Component):
@@ -19,10 +26,13 @@ class Executor(object):
             c = obj
         self._comp.add_component(c)
 
-    def run_train(self, acomp, start_data):
+    def run_train(self, start_data, acomp=None):
         data = start_data
         self._report_leveldown()
-        self._train_component(acomp, data)
+        if acomp is None:
+            self.run_compiled(data)
+        else:
+            self._train_component(acomp, data)
         self._report_levelup()
 
     def _train_component(self, acomp, data):
@@ -47,6 +57,45 @@ class Executor(object):
             #self._report('training basic "%s" ...' % acomp.name)
             out = self._train_one(acomp, data)
         return out
+
+    def dfs(self, graph, func):
+        data = ones_like(graph._inp)
+        buff = self._graph_comp_to_input(graph)
+        out_buff = {o: None for o in iter_maybe_list(graph._out)}
+        print buff
+        self.__emit_data(data, graph._inp, graph, buff, out_buff)
+        stack = _to_list(graph._inp, copy=True)
+        visited = set()
+        while stack:
+            curr_node = stack.pop()
+            self._report('DFS visits node "%s"' \
+                    % (curr_node))
+            if curr_node in visited:
+                raise ValueError('Graph has cycle(s) in it' % graph.name)
+            visited.add(curr_node)
+            for f, t, comp_name, acomp in graph._edges_with_attr(curr_node, attr=('name', 'comp')):
+                print '>>> DFS checking edge:', f, t, comp_name, acomp
+                curr_input = buff[comp_name]
+                entry = graph._comps[comp_name] 
+                if self.__is_inputs_ready(curr_input):
+                    self._report('DFS got component "%s" ready for processing ...' \
+                            % (comp_name,))
+                    #real_input_data = self.__make_real_input(curr_input, entry.inp)
+                    #print '>>> train:', acomp, real_input_data
+                    #out = self._train_component(acomp, real_input_data)
+                    #print '>>> train out:', out 
+                    func((comp_name, entry))
+                    out = ones_like(entry.out)
+                    self.__clear_inputs(curr_input)
+                    self.__emit_data(out, entry.out, graph, buff, out_buff)
+                    stack.extend(_to_list(entry.out))
+                    print '>>> DFS current output buffer of graph:', out_buff
+        if any(d is None for n, d in out_buff.iteritems()):
+            raise ValueError('Nothing is connected to output(s): %s' \
+                % filter(lambda n: out_buff[n] is None, out_buff.keys()))
+        ret = gets_from_dict(out_buff, graph._out)
+        print('DFS graph final output: %s' % ret)
+        return ret
 
     def _train_graph(self, graph, data):
         buff = self._graph_comp_to_input(graph)
@@ -92,7 +141,7 @@ class Executor(object):
             buff[k] = None
 
     def __emit_data(self, data, data_names, graph, buff, out_buff):
-        print '--> emit data:', data, data_names, graph
+        print '--> emit data "%s": %s' % (data, data_names)
         if any(d is None for d in iter_maybe_list(data)):
             raise ValueError('real data is none for data with name "%s"' % data_names)
         data_dict = { n:d for n, d in iter_maybe_list(data_names, data) }
@@ -103,14 +152,15 @@ class Executor(object):
             if dname in out_buff:
                 if out_buff[dname] is not None:
                     raise ValueError('output of "%s" already got a value' % dname)
+                print '>>>> emit to output "%s": %s' % (dname, d_obj)
                 out_buff[dname] = d_obj;
             for f, t, comp_name in graph._edges_with_attr(nbunch=[dname]):
-                print '__emit_data', f, t, comp_name
+                print '>>>> emiting data "%s" to %s->%s' % (dname, comp_name, f)
                 if f not in buff[comp_name]:
                     raise ValueError('Component "%s" does not have a input named "%s"!' \
                         % (comp_name, f))
                 buff[comp_name][f] = d_obj
-        #print(buff)
+        print('after emit:', buff)
 
     def _graph_comp_to_input(self, graph):
         '''
@@ -137,43 +187,80 @@ class Executor(object):
                 will be cleaned if computation done
             - output: send the output to all computation units that need it
         '''
-        return self._dfs(graph)
+        def pt(x):
+            print x
+        oimap = self._build_oimap(graph)
+        task_seq = self._build_task_seq(graph)
+        print 'OI mapping:', oimap
+        print 'task sequence:', task_seq
+        oimap_indexed = self._indexing_comp(oimap, task_seq)
+        print 'OI map indexed:', oimap_indexed
 
-    def _dfs(self, graph):
-        data = [1 for i in iter_maybe_list(graph._inp)]
-        buff = self._graph_comp_to_input(graph)
-        out_buff = {o: None for o in iter_maybe_list(graph._out)}
-        print buff
-        self.__emit_data(data, graph._inp, graph, buff, out_buff)
-        stack = _to_list(graph._inp, copy=True)
-        while stack:
-            curr_node = stack.pop()
-            self._report('Dataset "%s" in graph "%s" is ready' \
-                    % (curr_node, graph.name))
-            for f, t, comp_name, acomp in graph._edges_with_attr(curr_node, attr=('name', 'comp')):
-                print f, t, comp_name, acomp
-                curr_input = buff[comp_name]
-                entry = graph._comps[comp_name] 
-                if self.__is_inputs_ready(curr_input):
-                    self._report('training component "%s" in graph "%s" ...' \
-                            % (comp_name, graph.name))
-                    real_input_data = self.__make_real_input(curr_input, entry.inp)
-                    print '>>> train:', acomp, real_input_data
-                    out = self._train_component(acomp, real_input_data)
-                    print '>>> train out:', out 
-                    self.__clear_inputs(curr_input)
-                    #out_names = _to_list(entry.out)
-                    self.__emit_data(out, entry.out, graph, buff, out_buff)
-                    stack.extend(_to_list(entry.out))
-                    print '>>> out of graph:', out_buff
-        if any(d is None for n, d in out_buff.iteritems()):
-            raise ValueError('Output did not get an value: %s' \
-                % filter(lambda n: out_buff[n] is None, out_buff.keys()))
-        ret = gets_from_dict(out_buff, graph._out)
-        print('final output: %s' % ret)
-        return ret
+        self._oimap = oimap
+        self._task_seq = task_seq
 
+    def _build_task_seq(self, graph):
+        task_seq = [(Executor.__INPUT__, None)]
+        def _add_task(entry):
+            task_seq.append(entry)
+        self.dfs(graph, _add_task)
+        task_seq.append((Executor.__OUTPUT__, None))
+        return task_seq
 
+    def _indexing_comp(self, oimap, task_seq):
+        c2i = { name:i for i, (name, _) in enumerate(task_seq) }
+        print '-----_indexing_comp---------'
+        #print c2i
+        oimap_tmp = replace_struct(oimap, c2i)
+        print oimap_tmp
+        oimap_indexed = [ oimap_tmp[i] for i in sorted(c2i.values()) \
+                if i != c2i[Executor.__OUTPUT__]]
+        #task_seq_indexed = replace_struct(task_seq, c2i)
+        return oimap_indexed  #, task_seq_indexed
+
+    def _build_oimap(self, graph):
+        oimap = {}
+        def _get_oimap_for_outs(cname, outs):
+            #one_map = c.defaultdict(list)
+            one_map = []
+            print '>>>> build oimap for outs of component "%s": %s' % (cname, outs)
+            for out_idx, out in enumerate_maybe_list(outs):
+                print '>>>> build oimap for out %s: "%s"' % (out_idx, out)
+                for f, t, c_succ in graph._edges_with_attr(out):
+                    print '>>>> edge: %s->%s:%s' % (f, t, c_succ)
+                    inp_idx = call_maybe_list(graph._comps[c_succ].inp, list.index, out)
+                    print '>>>> mapping "%s": %s.out%s -> %s.inp%s' \
+                            % (out, cname, _str_index(out_idx), c_succ, _str_index(inp_idx))
+                    one_map.append((out_idx, c_succ, inp_idx))
+                if out in iter_maybe_list(graph._out):
+                    inp_idx = call_maybe_list(graph._out, list.index, out)
+                    one_map.append((out_idx, Executor.__OUTPUT__, inp_idx))
+            return one_map
+
+        oimap[Executor.__INPUT__] = _get_oimap_for_outs(Executor.__INPUT__, graph._inp)
+        print '>>>> build oimap for input',  oimap
+        for comp_name, entry in graph._comps.iteritems():
+            print '>>>> build oimap for component "%s"' % comp_name
+            curr_map = _get_oimap_for_outs(comp_name, entry.out)
+            oimap[comp_name] = curr_map
+            print '>>>> after build:', (oimap)
+        return oimap
+
+    def run_compiled(self, data):
+        if self._task_seq is None:
+            raise ValueError('No compiled graph found')
+        for c_idx, (c_name, c_entry) in enumerate(self._task_seq):
+            if c_name == Executor.__INPUT__:
+                if c_idx != 0:
+                    raise ValueError('First task should be input!')
+                self._report('Assign inputs')
+            elif c_name == Executor.__OUTPUT__:
+                self._report('Assign outputs')
+            else:
+                c_obj, c_inp, c_out = c_entry
+                self._report('Task %d: train component "%s"%s, input=%s, output=%s' \
+                    % (c_idx, c_name, c_obj.__class__, c_inp, c_out))
+                out = self._train_component(c_obj, None)
 
     def _report_levelup(self):
         self._reporter.levelup()
@@ -193,6 +280,34 @@ def _to_list(obj, copy=False):
             return obj
     else:
         return [obj]
+
+def call_maybe_list(obj, func, *args):
+    if isinstance(obj, (tuple, list)):
+        return func(obj, *args)
+    else:
+        return None
+
+def _str_index(idx):
+    if idx is None:
+        return ''
+    else:
+        return '[%s]' % idx
+
+def ones_like(obj):
+    return rep_like_maybe_list(1, obj)
+
+def rep_like_maybe_list(v, obj):
+    return map_maybe_list(lambda x: v, obj)
+
+def enumerate_maybe_list(obj, *args):
+    #print 'iter_maybe_list args:', obj, args
+    if isinstance(obj, (tuple, list)):
+        if any([len(a) != len(obj) for a in args]):
+            raise ValueError('length of lists are not identical')
+        for i, o in enumerate(obj):
+            yield tuple_or_scale([i, o] + [a[i] for a in args])
+    else:
+        yield tuple_or_scale((None, obj) + args)
 
 def iter_maybe_list(obj, *args):
     #print 'iter_maybe_list args:', obj, args
@@ -233,6 +348,16 @@ def gets_from_dict(adict, keys):
     else:
         return adict[keys]
 
+def replace_struct(obj, replace):
+    if isinstance(obj, dict):
+        return {replace_struct(k, replace): replace_struct(v, replace) \
+                for k, v in obj.iteritems()}
+    elif isinstance(obj, list):
+        return [replace_struct(i, replace) for i in obj]
+    elif isinstance(obj, tuple):
+        return tuple([replace_struct(i, replace) for i in obj])
+    else:
+        return replace.get(obj, obj)
 
 
 ######## tests
@@ -244,19 +369,30 @@ def test_maybe_list():
     print [ a for a in iter_maybe_list(['a', 1], [10, 20], [100, 110])]
     print [ a for a in iter_maybe_list(['a', 1, 2], [10, 20])]
 
+def test_replace_struct():
+    s = {'a':[('a', 1), ['ab', 'a'], 'a', 100], 2:'a'}
+    rep = {'a': 'x'}
+    r = replace_struct(s, rep)
+    print s
+    print r
+
 def test_exec():
     gcomp = comp.GraphComp('test_graph', inp=['input', 'x'], out='y')
     gcomp.add_comp('c1', comp.PassComp(), 'x', 'u')
-    gcomp.add_comp('c2', comp.ConstComp(1), ['input', 'u'], 'y')
+    gcomp.add_comp('c3', comp.PassComp(), 'z', 'y')
+    gcomp.add_comp('c2', comp.ConstComp(1), ['input', 'u'], 'z')
     print gcomp
 
     import report
     exe = Executor(report.TxtReporter())
-    #exe.run_train(gcomp, [(11,22), {'a':100, 10:200}])
-    exe.compile(gcomp)
+    data = [(11,22), {'a':100, 10:200}]
+    #exe.run_train(data, gcomp)
+    exe.compile_graph(gcomp)
+    exe.run_train(data)
 
 def main():
     #test_maybe_list()
+    test_replace_struct()
     test_exec()
     return
 
