@@ -17,7 +17,8 @@ class FooML(object):
         self._reporter = report.TxtReporter()
         self._err = sys.stderr
         self._ds = {}
-        self._comp = comp.Serial()
+        #self._comp = comp.Serial()
+        self._comp = comp.GraphComp()
         self._exec = executor.Executor(self._reporter)
         self._target = None
 
@@ -56,7 +57,8 @@ class FooML(object):
     def run(self):
         self.show()
         self.desc_data()
-        self.run_train()
+        self._exe.compile_graph(self._comp)
+        self._exe.run_train()
         self.run_test()
 
     def desc_data(self):
@@ -100,11 +102,11 @@ class FooML(object):
 def __test1():
     foo = FooML()
     foo.use_data('iris')
-    foo.add_cutter('adapt', input='iris')
-    foo.add_fsel('Kbest', output='x')
-    foo.add_classifier('LR')
-    foo.add_classifier('RandomForest', input='x')
-    foo.cross_validate('K', k=4)
+    foo.add_cutter('adapt', input='iris', output='cutted')
+    foo.add_fsel('Kbest', input='cutted', output='x')
+    foo.add_classifier('LR', input='x')
+    #foo.add_classifier('RandomForest', input='x')
+    #foo.cross_validate('K', k=4)
     foo.evaluate('AUC')
     foo.run()
 

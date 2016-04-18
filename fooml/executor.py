@@ -52,7 +52,7 @@ class Executor(object):
             self._report_levelup()
         elif isinstance(acomp, comp.GraphComp):
             self._report('training graph "%s" ...' % acomp.name)
-            out = self._train_graph(acomp, data)
+            out = self.run_train(acomp, data)
         else:
             #print acomp
             #self._report('training basic "%s" ...' % acomp.name)
@@ -468,8 +468,11 @@ def test_replace_struct():
 def test_exec():
     gcomp = comp.GraphComp('test_graph', inp=['input', 'x'], out='y')
     gcomp.add_comp('c1', comp.PassComp(), 'x', 'u')
-    gcomp.add_comp('c3', comp.PassComp(), 'z', 'y')
     gcomp.add_comp('c2', comp.ConstComp(1), ['input', 'u'], 'z')
+    #gsub1 = comp.GraphComp('subgraph1', inp='s1', out='y1')
+    #gsub1.add_comp('c31', comp.PassComp(), 's1', 'y1')
+    #gcomp.add_comp('g3', gsub1, 'z', 'y')
+    gcomp.add_comp('g3', comp.PassComp(), 'z', 'y')
     print gcomp
 
     import report
