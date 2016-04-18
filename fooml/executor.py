@@ -5,7 +5,7 @@
 
 import sys
 import comp
-import collections as c
+import collections
 
 
 class Executor(object):
@@ -18,6 +18,7 @@ class Executor(object):
         #self._comp = comp.Serial()
         self._oimap = None
         self._task_seq = None
+        self._graph = None
 
     def add_component(self, obj, name=None, func=None):
         if not isinstance(obj, comp.Component):
@@ -76,14 +77,14 @@ class Executor(object):
             for f, t, comp_name, acomp in graph._edges_with_attr(curr_node, attr=('name', 'comp')):
                 print '>>> DFS checking edge:', f, t, comp_name, acomp
                 curr_input = buff[comp_name]
-                entry = graph._comps[comp_name] 
+                entry = graph._comps[comp_name]
                 if self.__is_inputs_ready(curr_input):
                     self._report('DFS got component "%s" ready for processing ...' \
                             % (comp_name,))
                     #real_input_data = self.__make_real_input(curr_input, entry.inp)
                     #print '>>> train:', acomp, real_input_data
                     #out = self._train_component(acomp, real_input_data)
-                    #print '>>> train out:', out 
+                    #print '>>> train out:', out
                     func((comp_name, entry))
                     out = ones_like(entry.out)
                     self.__clear_inputs(curr_input)
@@ -110,14 +111,14 @@ class Executor(object):
             for f, t, comp_name, acomp in graph._edges_with_attr(curr_node, attr=('name', 'comp')):
                 print f, t, comp_name, acomp
                 curr_input = buff[comp_name]
-                entry = graph._comps[comp_name] 
+                entry = graph._comps[comp_name]
                 if self.__is_inputs_ready(curr_input):
                     self._report('training component "%s" in graph "%s" ...' \
                             % (comp_name, graph.name))
                     real_input_data = self.__make_real_input(curr_input, entry.inp)
                     print '>>> train:', acomp, real_input_data
                     out = self._train_component(acomp, real_input_data)
-                    print '>>> train out:', out 
+                    print '>>> train out:', out
                     self.__clear_inputs(curr_input)
                     #out_names = _to_list(entry.out)
                     self.__emit_data(out, entry.out, graph, buff, out_buff)
@@ -196,8 +197,9 @@ class Executor(object):
         oimap_indexed = self._indexing_comp(oimap, task_seq)
         print 'OI map indexed:', oimap_indexed
 
-        self._oimap = oimap
+        self._oimap = oimap_indexed
         self._task_seq = task_seq
+        self._graph = graph
 
     def _build_task_seq(self, graph):
         task_seq = [(Executor.__INPUT__, None)]
@@ -221,7 +223,7 @@ class Executor(object):
     def _build_oimap(self, graph):
         oimap = {}
         def _get_oimap_for_outs(cname, outs):
-            #one_map = c.defaultdict(list)
+            #one_map = collections.defaultdict(list)
             one_map = []
             print '>>>> build oimap for outs of component "%s": %s' % (cname, outs)
             for out_idx, out in enumerate_maybe_list(outs):
@@ -247,20 +249,96 @@ class Executor(object):
         return oimap
 
     def run_compiled(self, data):
+        self._report('Run Compiled Graph "%s" ...' % self._graph.name)
+
         if self._task_seq is None:
             raise ValueError('No compiled graph found')
-        for c_idx, (c_name, c_entry) in enumerate(self._task_seq):
-            if c_name == Executor.__INPUT__:
-                if c_idx != 0:
-                    raise ValueError('First task should be input!')
-                self._report('Assign inputs')
-            elif c_name == Executor.__OUTPUT__:
-                self._report('Assign outputs')
+
+        # create buffers for storing real inputs of each task
+        input_buff = self._create_input_buff()
+        print 'input buff', input_buff
+
+        pending = collections.deque(i for i, _ in enumerate(self._task_seq))
+
+        # run input
+        curr_task_no = pending.popleft()
+        c_name, entry = self._task_seq[curr_task_no]
+        if c_name != Executor.__INPUT__:
+            raise ValueError('First task should be input!')
+        self._report('Task Input: assign input data')
+        self._report_leveldown()
+        self.__emit_data_by_index(data, curr_task_no, input_buff)
+        self._report_levelup()
+
+        while pending:
+            curr_task_no = pending.popleft()
+            c_name, c_entry = self._task_seq[curr_task_no]
+            curr_input = input_buff[curr_task_no]
+            if not self._is_input_ready(curr_input):
+                raise ValueError('Task %s does not recieve all input data' % c_name)
+            if c_name == Executor.__OUTPUT__:
+                self._report('Task Ouput: assign output results')
+                self._report_leveldown()
+                ret = curr_input
+                self._report_levelup()
             else:
                 c_obj, c_inp, c_out = c_entry
                 self._report('Task %d: train component "%s"%s, input=%s, output=%s' \
-                    % (c_idx, c_name, c_obj.__class__, c_inp, c_out))
-                out = self._train_component(c_obj, None)
+                    % (curr_task_no, c_name, c_obj.__class__, c_inp, c_out))
+                self._report_leveldown()
+                out = self._train_component(c_obj, curr_input)
+                self.__emit_data_by_index(out, curr_task_no, input_buff)
+                input_buff[curr_task_no] = None  # clean input data
+                self._report_levelup()
+        return ret
+
+    def _create_input_buff(self):
+        def _iter_task_inp():
+            yield self._graph._inp
+            for cname, (c_obj, c_inp, c_out) in self._task_seq[1:-1]:
+                yield c_inp
+            yield self._graph._out
+        buff = [ nones_like(inp) for inp in _iter_task_inp() ]
+        return buff
+
+    def _is_input_ready(self, buff):
+        #print '-----> _is_input_ready:', buff
+        return all([ d is not None for d in iter_maybe_list(buff)])
+
+    def __emit_data_by_index(self, data, task_no, input_buff):
+        def _format_comp(c):
+            if c is None:
+                c_name = ''
+            else:
+                c_name = self._task_seq[c][0]
+            return c_name
+
+        def _format_output(c, i):
+            c_name = self._task_seq[c][0]
+            if c_name == Executor.__INPUT__:
+                i_name = get_maybe_list(self._graph._inp, i)
+            else:
+                i_name = get_maybe_list(self._task_seq[c][1].out, i)
+            return 'output%s:"%s"' % (_str_index(i), i_name)
+
+        def _format_input(c, i):
+            c_name = self._task_seq[c][0]
+            if c_name == Executor.__OUTPUT__:
+                i_name = get_maybe_list(self._graph._out, i)
+            else:
+                i_name = get_maybe_list(self._task_seq[c][1].inp, i)
+            return 'input%s:"%s"' % (_str_index(i), i_name)
+
+        oimap = self._oimap[task_no]
+        for o, c, i in oimap:
+            self._report('emit "%s".%s --> "%s".%s' \
+                    % (_format_comp(task_no), _format_output(task_no, o), \
+                       _format_comp(c), _format_input(c, i)))
+            di = get_maybe_list(data, o)
+            if i is None:
+                input_buff[c]  = di
+            else:
+                input_buff[c][i] = di
 
     def _report_levelup(self):
         self._reporter.levelup()
@@ -293,11 +371,22 @@ def _str_index(idx):
     else:
         return '[%s]' % idx
 
+def nones_like(obj):
+    return rep_like_maybe_list(None, obj)
+
 def ones_like(obj):
     return rep_like_maybe_list(1, obj)
 
 def rep_like_maybe_list(v, obj):
     return map_maybe_list(lambda x: v, obj)
+
+def get_maybe_list(obj, idx):
+    if isinstance(obj, (tuple, list)):
+        return obj[idx]
+    else:
+        if idx is not None:
+            raise ValueError('index is not None but object is not a list')
+        return obj
 
 def enumerate_maybe_list(obj, *args):
     #print 'iter_maybe_list args:', obj, args
@@ -305,9 +394,9 @@ def enumerate_maybe_list(obj, *args):
         if any([len(a) != len(obj) for a in args]):
             raise ValueError('length of lists are not identical')
         for i, o in enumerate(obj):
-            yield tuple_or_scale([i, o] + [a[i] for a in args])
+            yield maybe_tuple([i, o] + [a[i] for a in args])
     else:
-        yield tuple_or_scale((None, obj) + args)
+        yield maybe_tuple((None, obj) + args)
 
 def iter_maybe_list(obj, *args):
     #print 'iter_maybe_list args:', obj, args
@@ -315,11 +404,11 @@ def iter_maybe_list(obj, *args):
         if any([len(a) != len(obj) for a in args]):
             raise ValueError('length of lists are not identical')
         for i, o in enumerate(obj):
-            yield tuple_or_scale([o] + [a[i] for a in args])
+            yield maybe_tuple([o] + [a[i] for a in args])
     else:
-        yield tuple_or_scale((obj,) + args)
+        yield maybe_tuple((obj,) + args)
 
-def tuple_or_scale(obj):
+def maybe_tuple(obj):
     if isinstance(obj, (tuple, list)):
         if len(obj) > 1:
             return tuple(obj)
@@ -335,7 +424,7 @@ def map_maybe_list(func, obj):
         return func(obj)
 
 def gets_from_dict(adict, keys):
-    ''' return a list while `keys` is a list or tuple of keys; 
+    ''' return a list while `keys` is a list or tuple of keys;
     or a value if `keys` is a single key
     '''
 
