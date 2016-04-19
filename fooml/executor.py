@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# TODO: add support for compiling & executing nested graph comp
+
 #from __future__ import print_function
 
 import sys
 import comp
+import graph
 import collections
 
 
@@ -27,14 +30,14 @@ class Executor(object):
             c = obj
         self._comp.add_component(c)
 
-    def run_train(self, start_data, acomp=None):
-        data = start_data
-        self._report_leveldown()
-        if acomp is None:
-            self.run_compiled(data)
+    def run_train(self, start_data, acomp=None, data_keyed=True):
+        if data_keyed:
+            data = self.__data_dict_to_list(start_data, self._graph._inp)
         else:
-            self._train_component(acomp, data)
-        self._report_levelup()
+            data = start_data
+        self._train_component(acomp, data)
+        #self._report_leveldown()
+        #self._report_levelup()
 
     def _train_component(self, acomp, data):
         if isinstance(acomp, comp.Parallel):
@@ -50,9 +53,14 @@ class Executor(object):
             for c in acomp:
                 d = self._train_component(c, d)
             self._report_levelup()
-        elif isinstance(acomp, comp.GraphComp):
+        elif isinstance(acomp, graph.CompGraph):
             self._report('training graph "%s" ...' % acomp.name)
-            out = self.run_train(acomp, data)
+            # TODO: refact this
+            if acomp is None:
+                out = self.run_compiled(data)
+            else:
+                out = self._train_component(acomp, data)
+            #self.run_train(acomp, data)
         else:
             #print acomp
             #self._report('training basic "%s" ...' % acomp.name)
@@ -81,7 +89,7 @@ class Executor(object):
                 if self.__is_inputs_ready(curr_input):
                     self._report('DFS got component "%s" ready for processing ...' \
                             % (comp_name,))
-                    #real_input_data = self.__make_real_input(curr_input, entry.inp)
+                    #real_input_data = self.__data_dict_to_list(curr_input, entry.inp)
                     #print '>>> train:', acomp, real_input_data
                     #out = self._train_component(acomp, real_input_data)
                     #print '>>> train out:', out
@@ -115,7 +123,7 @@ class Executor(object):
                 if self.__is_inputs_ready(curr_input):
                     self._report('training component "%s" in graph "%s" ...' \
                             % (comp_name, graph.name))
-                    real_input_data = self.__make_real_input(curr_input, entry.inp)
+                    real_input_data = self.__data_dict_to_list(curr_input, entry.inp)
                     print '>>> train:', acomp, real_input_data
                     out = self._train_component(acomp, real_input_data)
                     print '>>> train out:', out
@@ -134,7 +142,7 @@ class Executor(object):
     def __is_inputs_ready(self, buff):
         return all([d is not None for i, d in buff.iteritems()])
 
-    def __make_real_input(self, data_dict, input_names):
+    def __data_dict_to_list(self, data_dict, input_names):
         return map_maybe_list(lambda n: data_dict[n], input_names)
 
     def __clear_inputs(self, buff):
@@ -466,10 +474,10 @@ def test_replace_struct():
     print r
 
 def test_exec():
-    gcomp = comp.GraphComp('test_graph', inp=['input', 'x'], out='y')
+    gcomp = graph.CompGraph('test_graph', inp=['input', 'x'], out='y')
     gcomp.add_comp('c1', comp.PassComp(), 'x', 'u')
     gcomp.add_comp('c2', comp.ConstComp(1), ['input', 'u'], 'z')
-    #gsub1 = comp.GraphComp('subgraph1', inp='s1', out='y1')
+    #gsub1 = graph.CompGraph('subgraph1', inp='s1', out='y1')
     #gsub1.add_comp('c31', comp.PassComp(), 's1', 'y1')
     #gcomp.add_comp('g3', gsub1, 'z', 'y')
     gcomp.add_comp('g3', comp.PassComp(), 'z', 'y')

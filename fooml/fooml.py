@@ -8,17 +8,22 @@ import dataset
 import stats
 import report
 import executor
-import comp
+#import comp
+import graph
+import factory
+import util
 
 
 class FooML(object):
+
+    __NULL = '_'
 
     def __init__(self):
         self._reporter = report.TxtReporter()
         self._err = sys.stderr
         self._ds = {}
         #self._comp = comp.Serial()
-        self._comp = comp.GraphComp()
+        self._comp = graph.CompGraph('main')
         self._exec = executor.Executor(self._reporter)
         self._target = None
 
@@ -31,22 +36,23 @@ class FooML(object):
         if isinstance(data, (str, unicode)):
             name = data
             ds = dataset.load_data(data)
+        else:
+            ds = data
 
         if name in self._ds:
             self._report('Warning: Dataset with name "%s" already exists. Will be replaced' % name)
         self._ds[name] = ds
+        print self._ds
 
-    def add_component(self, acomp):
-        self._comp.add_component(acomp)
+    def add_comp(self, acomp, name, inp, out):
+        return self._comp.add_comp(name, acomp, inp, out)
 
-    def add_obj(self, obj, name='anom', func=None):
-        self._comp.add_obj(name, obj)
-
-    def add_classifier(self, clf, name='clf'):
-        if isinstance(clf, (str, unicode)):
-            name = clf
-            clf = wrap.create_classifier(clf)
-        self.add_obj(clf, name)
+    def add_classifier(self, name, input, output=__NULL, comp=None):
+        if comp is None:
+            clf = factory.create_classifier(name)
+        else:
+            clf = comp
+        self.add_comp(clf, name, input, output)
 
     def set_target(self, target):
         self._target = target
@@ -57,9 +63,18 @@ class FooML(object):
     def run(self):
         self.show()
         self.desc_data()
-        self._exe.compile_graph(self._comp)
-        self._exe.run_train()
-        self.run_test()
+
+        self._comp.set_input(util.key_or_keys(self._ds))
+        self._comp.set_output(FooML.__NULL)
+
+        self._report('Compiling graph ...')
+        self._exec.compile_graph(self._comp)
+
+        self._report('Training ...')
+        self._exec.run_train()
+
+        self._report('Run Testing ...')
+        #self._exec.run_test()
 
     def desc_data(self):
         self._report('Quick Summary of Original Data')
@@ -74,13 +89,9 @@ class FooML(object):
             self._report_levelup()
         self._report_levelup()
 
-    def run_train(self):
-        self._report('Training ...')
-        for _, data in self._ds.iteritems(): break;
-        self._exec.run_train(self._comp, data)
 
     def run_test(self):
-        self._report('Run Testing ...')
+        pass
 
     def _desc(self, data):
         if data is None:
@@ -102,12 +113,12 @@ class FooML(object):
 def __test1():
     foo = FooML()
     foo.use_data('iris')
-    foo.add_cutter('adapt', input='iris', output='cutted')
-    foo.add_fsel('Kbest', input='cutted', output='x')
-    foo.add_classifier('LR', input='x')
+    #foo.add_cutter('adapt', input='iris', output='cutted')
+    #foo.add_fsel('Kbest', input='cutted', output='x')
+    foo.add_classifier('LR', input='iris')
     #foo.add_classifier('RandomForest', input='x')
     #foo.cross_validate('K', k=4)
-    foo.evaluate('AUC')
+    #foo.evaluate('AUC')
     foo.run()
 
 def main():
