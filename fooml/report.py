@@ -4,12 +4,15 @@
 from __future__ import print_function
 
 import sys
+from log import logger
 
 class TxtReporter(object):
 
     def __init__(self, out=sys.stdout, prefix='  '):
         self._out = out
         self.level = 1
+        #self.__init_indent = ' ' * 8
+        self.__init_indent = ''
         self.prefix = prefix
 
     def levelup(self):
@@ -35,7 +38,12 @@ class TxtReporter(object):
             self.report_str(str(msgs), prefix)
 
     def report_str(self, msg, prefix):
-        print(prefix + msg.replace('\n', '\n' + prefix), file=self._out)
+        #indent = self.__init_indent + prefix
+        indent = prefix
+        for line in msg.split('\n'):
+            s = indent + line
+            logger.info('%s' % s)
+        #print(s, file=self._out)
 
     def _check_level(self, level):
         if level <= 0:

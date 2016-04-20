@@ -59,7 +59,7 @@ class CompGraph(object):
         return self
 
     def __str__(self):
-        return '<%s>[Input:%s, Output:%s, Nodes:%s, Edges:%s, Components:%s]' % \
+        return '%s:\n\t Input:  %s,\n\t Output: %s,\n\t Nodes:  %s,\n\t Edges:  %s,\n\t Components:\n%s]' % \
                 (self.__class__.__name__, self._inp, self._out, \
                  self._graph.nodes(), \
                  self._str_edges_with_attr(), \
@@ -79,8 +79,8 @@ class CompGraph(object):
     def _str_comps(self):
         slist = []
         for name, c in self._comps.iteritems():
-            slist.append('\'%s\':%s' % (name, str(c)))
-        return '{%s}' % ', '.join(slist)
+            slist.append('\'%s\':\t%s' % (name, str(c)))
+        return '\n'.join(slist)
 
 def test_graph():
 
