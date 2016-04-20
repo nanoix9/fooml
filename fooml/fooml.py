@@ -42,7 +42,7 @@ class FooML(object):
         if name in self._ds:
             self._report('Warning: Dataset with name "%s" already exists. Will be replaced' % name)
         self._ds[name] = ds
-        print self._ds
+        #print self._ds
 
     def add_comp(self, acomp, name, inp, out):
         return self._comp.add_comp(name, acomp, inp, out)
@@ -59,19 +59,20 @@ class FooML(object):
 
     def show(self):
         self._report('Fooml description:')
+        self._report('Graph of computing components: %s' % self._comp)
 
     def run(self):
-        self.show()
-        self.desc_data()
-
         self._comp.set_input(util.key_or_keys(self._ds))
         self._comp.set_output(FooML.__NULL)
+
+        self.show()
+        self.desc_data()
 
         self._report('Compiling graph ...')
         self._exec.compile_graph(self._comp)
 
         self._report('Training ...')
-        self._exec.run_train()
+        self._exec.run_train(self._ds, data_keyed=True)
 
         self._report('Run Testing ...')
         #self._exec.run_test()

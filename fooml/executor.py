@@ -9,6 +9,7 @@ import sys
 import comp
 import graph
 import collections
+import util
 
 
 class Executor(object):
@@ -30,7 +31,7 @@ class Executor(object):
             c = obj
         self._comp.add_component(c)
 
-    def run_train(self, start_data, acomp=None, data_keyed=True):
+    def run_train(self, start_data, acomp=None, data_keyed=False):
         if data_keyed:
             data = self.__data_dict_to_list(start_data, self._graph._inp)
         else:
@@ -53,13 +54,13 @@ class Executor(object):
             for c in acomp:
                 d = self._train_component(c, d)
             self._report_levelup()
+        elif acomp is None:
+            self._report('training graph compiled "%s" ...' % self._graph.name)
+            out = self.run_compiled(data)
         elif isinstance(acomp, graph.CompGraph):
             self._report('training graph "%s" ...' % acomp.name)
             # TODO: refact this
-            if acomp is None:
-                out = self.run_compiled(data)
-            else:
-                out = self._train_component(acomp, data)
+            out = self._train_component(acomp, data)
             #self.run_train(acomp, data)
         else:
             #print acomp
@@ -68,12 +69,12 @@ class Executor(object):
         return out
 
     def dfs(self, graph, func):
-        data = ones_like(graph._inp)
+        data = util.ones_like(graph._inp)
         buff = self._graph_comp_to_input(graph)
-        out_buff = {o: None for o in iter_maybe_list(graph._out)}
+        out_buff = {o: None for o in util.iter_maybe_list(graph._out)}
         print buff
         self.__emit_data(data, graph._inp, graph, buff, out_buff)
-        stack = _to_list(graph._inp, copy=True)
+        stack = util.to_list(graph._inp, copy=True)
         visited = set()
         while stack:
             curr_node = stack.pop()
@@ -94,24 +95,24 @@ class Executor(object):
                     #out = self._train_component(acomp, real_input_data)
                     #print '>>> train out:', out
                     func((comp_name, entry))
-                    out = ones_like(entry.out)
+                    out = util.ones_like(entry.out)
                     self.__clear_inputs(curr_input)
                     self.__emit_data(out, entry.out, graph, buff, out_buff)
-                    stack.extend(_to_list(entry.out))
+                    stack.extend(util.to_list(entry.out))
                     print '>>> DFS current output buffer of graph:', out_buff
         if any(d is None for n, d in out_buff.iteritems()):
             raise ValueError('Nothing is connected to output(s): %s' \
                 % filter(lambda n: out_buff[n] is None, out_buff.keys()))
-        ret = gets_from_dict(out_buff, graph._out)
+        ret = util.gets_from_dict(out_buff, graph._out)
         print('DFS graph final output: %s' % ret)
         return ret
 
     def _train_graph(self, graph, data):
         buff = self._graph_comp_to_input(graph)
-        out_buff = {o: None for o in iter_maybe_list(graph._out)}
+        out_buff = {o: None for o in util.iter_maybe_list(graph._out)}
         print buff
         self.__emit_data(data, graph._inp, graph, buff, out_buff)
-        stack = _to_list(graph._inp, copy=True)
+        stack = util.to_list(graph._inp, copy=True)
         while stack:
             curr_node = stack.pop()
             self._report('Dataset "%s" in graph "%s" is ready' \
@@ -128,14 +129,14 @@ class Executor(object):
                     out = self._train_component(acomp, real_input_data)
                     print '>>> train out:', out
                     self.__clear_inputs(curr_input)
-                    #out_names = _to_list(entry.out)
+                    #out_names = util.to_list(entry.out)
                     self.__emit_data(out, entry.out, graph, buff, out_buff)
-                    stack.extend(_to_list(entry.out))
+                    stack.extend(util.to_list(entry.out))
                     print '>>> out of graph:', out_buff
         if any(d is None for n, d in out_buff.iteritems()):
             raise ValueError('Output did not get an value: %s' \
                 % filter(lambda n: out_buff[n] is None, out_buff.keys()))
-        ret = gets_from_dict(out_buff, graph._out)
+        ret = util.gets_from_dict(out_buff, graph._out)
         print('final output: %s' % ret)
         return ret
 
@@ -143,7 +144,8 @@ class Executor(object):
         return all([d is not None for i, d in buff.iteritems()])
 
     def __data_dict_to_list(self, data_dict, input_names):
-        return map_maybe_list(lambda n: data_dict[n], input_names)
+        #print data_dict
+        return util.map_maybe_list(lambda n: data_dict[n], input_names)
 
     def __clear_inputs(self, buff):
         for k in buff:
@@ -151,9 +153,9 @@ class Executor(object):
 
     def __emit_data(self, data, data_names, graph, buff, out_buff):
         print '--> emit data "%s": %s' % (data, data_names)
-        if any(d is None for d in iter_maybe_list(data)):
+        if any(d is None for d in util.iter_maybe_list(data)):
             raise ValueError('real data is none for data with name "%s"' % data_names)
-        data_dict = { n:d for n, d in iter_maybe_list(data_names, data) }
+        data_dict = { n:d for n, d in util.iter_maybe_list(data_names, data) }
         #print data_dict
         #sys.exit()
         print('before emit:', buff)
@@ -164,7 +166,7 @@ class Executor(object):
                 print '>>>> emit to output "%s": %s' % (dname, d_obj)
                 out_buff[dname] = d_obj;
             for f, t, comp_name in graph._edges_with_attr(nbunch=[dname]):
-                print '>>>> emiting data "%s" to %s->%s' % (dname, comp_name, f)
+                print '>>>> emiting data "%s" to %s.%s' % (dname, comp_name, f)
                 if f not in buff[comp_name]:
                     raise ValueError('Component "%s" does not have a input named "%s"!' \
                         % (comp_name, f))
@@ -180,7 +182,7 @@ class Executor(object):
         #for f, t, cn in graph._edges_with_attr():
         #    c2i[cn] = { fi: None for fi in f }
         for name, (_, inp, out) in graph._comps.iteritems():
-            c2i[name] = { i: None for i in inp }
+            c2i[name] = { i: None for i in util.iter_maybe_list(inp) }
         return c2i
 
     def _train_one(self, basic_comp, data):
@@ -221,11 +223,11 @@ class Executor(object):
         c2i = { name:i for i, (name, _) in enumerate(task_seq) }
         print '-----_indexing_comp---------'
         #print c2i
-        oimap_tmp = replace_struct(oimap, c2i)
+        oimap_tmp = util.replace_struct(oimap, c2i)
         print oimap_tmp
         oimap_indexed = [ oimap_tmp[i] for i in sorted(c2i.values()) \
                 if i != c2i[Executor.__OUTPUT__]]
-        #task_seq_indexed = replace_struct(task_seq, c2i)
+        #task_seq_indexed = util.replace_struct(task_seq, c2i)
         return oimap_indexed  #, task_seq_indexed
 
     def _build_oimap(self, graph):
@@ -234,16 +236,16 @@ class Executor(object):
             #one_map = collections.defaultdict(list)
             one_map = []
             print '>>>> build oimap for outs of component "%s": %s' % (cname, outs)
-            for out_idx, out in enumerate_maybe_list(outs):
+            for out_idx, out in util.enumerate_maybe_list(outs):
                 print '>>>> build oimap for out %s: "%s"' % (out_idx, out)
                 for f, t, c_succ in graph._edges_with_attr(out):
                     print '>>>> edge: %s->%s:%s' % (f, t, c_succ)
-                    inp_idx = call_maybe_list(graph._comps[c_succ].inp, list.index, out)
+                    inp_idx = util.call_maybe_list(graph._comps[c_succ].inp, list.index, out)
                     print '>>>> mapping "%s": %s.out%s -> %s.inp%s' \
-                            % (out, cname, _str_index(out_idx), c_succ, _str_index(inp_idx))
+                            % (out, cname, util.str_index(out_idx), c_succ, util.str_index(inp_idx))
                     one_map.append((out_idx, c_succ, inp_idx))
-                if out in iter_maybe_list(graph._out):
-                    inp_idx = call_maybe_list(graph._out, list.index, out)
+                if out in util.iter_maybe_list(graph._out):
+                    inp_idx = util.call_maybe_list(graph._out, list.index, out)
                     one_map.append((out_idx, Executor.__OUTPUT__, inp_idx))
             return one_map
 
@@ -306,12 +308,12 @@ class Executor(object):
             for cname, (c_obj, c_inp, c_out) in self._task_seq[1:-1]:
                 yield c_inp
             yield self._graph._out
-        buff = [ nones_like(inp) for inp in _iter_task_inp() ]
+        buff = [ util.nones_like(inp) for inp in _iter_task_inp() ]
         return buff
 
     def _is_input_ready(self, buff):
         #print '-----> _is_input_ready:', buff
-        return all([ d is not None for d in iter_maybe_list(buff)])
+        return all([ d is not None for d in util.iter_maybe_list(buff)])
 
     def __emit_data_by_index(self, data, task_no, input_buff):
         def _format_comp(c):
@@ -324,25 +326,25 @@ class Executor(object):
         def _format_output(c, i):
             c_name = self._task_seq[c][0]
             if c_name == Executor.__INPUT__:
-                i_name = get_maybe_list(self._graph._inp, i)
+                i_name = util.get_maybe_list(self._graph._inp, i)
             else:
-                i_name = get_maybe_list(self._task_seq[c][1].out, i)
-            return 'output%s:"%s"' % (_str_index(i), i_name)
+                i_name = util.get_maybe_list(self._task_seq[c][1].out, i)
+            return 'output%s:"%s"' % (util.str_index(i), i_name)
 
         def _format_input(c, i):
             c_name = self._task_seq[c][0]
             if c_name == Executor.__OUTPUT__:
-                i_name = get_maybe_list(self._graph._out, i)
+                i_name = util.get_maybe_list(self._graph._out, i)
             else:
-                i_name = get_maybe_list(self._task_seq[c][1].inp, i)
-            return 'input%s:"%s"' % (_str_index(i), i_name)
+                i_name = util.get_maybe_list(self._task_seq[c][1].inp, i)
+            return 'input%s:"%s"' % (util.str_index(i), i_name)
 
         oimap = self._oimap[task_no]
         for o, c, i in oimap:
             self._report('emit "%s".%s --> "%s".%s' \
                     % (_format_comp(task_no), _format_output(task_no, o), \
                        _format_comp(c), _format_input(c, i)))
-            di = get_maybe_list(data, o)
+            di = util.get_maybe_list(data, o)
             if i is None:
                 input_buff[c]  = di
             else:
@@ -356,122 +358,6 @@ class Executor(object):
 
     def _report(self, msg):
         self._reporter.report(msg)
-
-
-def _to_list(obj, copy=False):
-    if isinstance(obj, (tuple, list)):
-        if copy:
-            return list(obj)
-        else:
-            return obj
-    else:
-        return [obj]
-
-def call_maybe_list(obj, func, *args):
-    if isinstance(obj, (tuple, list)):
-        return func(obj, *args)
-    else:
-        return None
-
-def _str_index(idx):
-    if idx is None:
-        return ''
-    else:
-        return '[%s]' % idx
-
-def nones_like(obj):
-    return rep_like_maybe_list(None, obj)
-
-def ones_like(obj):
-    return rep_like_maybe_list(1, obj)
-
-def rep_like_maybe_list(v, obj):
-    return map_maybe_list(lambda x: v, obj)
-
-def get_maybe_list(obj, idx):
-    if isinstance(obj, (tuple, list)):
-        return obj[idx]
-    else:
-        if idx is not None:
-            raise ValueError('index is not None but object is not a list')
-        return obj
-
-def enumerate_maybe_list(obj, *args):
-    #print 'iter_maybe_list args:', obj, args
-    if isinstance(obj, (tuple, list)):
-        if any([len(a) != len(obj) for a in args]):
-            raise ValueError('length of lists are not identical')
-        for i, o in enumerate(obj):
-            yield maybe_tuple([i, o] + [a[i] for a in args])
-    else:
-        yield maybe_tuple((None, obj) + args)
-
-def iter_maybe_list(obj, *args):
-    #print 'iter_maybe_list args:', obj, args
-    if isinstance(obj, (tuple, list)):
-        if any([len(a) != len(obj) for a in args]):
-            raise ValueError('length of lists are not identical')
-        for i, o in enumerate(obj):
-            yield maybe_tuple([o] + [a[i] for a in args])
-    else:
-        yield maybe_tuple((obj,) + args)
-
-def maybe_tuple(obj):
-    if isinstance(obj, (tuple, list)):
-        if len(obj) > 1:
-            return tuple(obj)
-        else:
-            return obj[0]
-    else:
-        return obj
-
-def map_maybe_list(func, obj):
-    if isinstance(obj, (tuple, list)):
-        return map(func, obj)
-    else:
-        return func(obj)
-
-def gets_from_dict(adict, keys):
-    ''' return a list while `keys` is a list or tuple of keys;
-    or a value if `keys` is a single key
-    '''
-
-    if isinstance(keys, (tuple, list)):
-        ret = [ adict[k] for k in keys ]
-        if isinstance(keys, tuple):
-            return tuple(ret)
-        else:
-            return ret
-    else:
-        return adict[keys]
-
-def replace_struct(obj, replace):
-    if isinstance(obj, dict):
-        return {replace_struct(k, replace): replace_struct(v, replace) \
-                for k, v in obj.iteritems()}
-    elif isinstance(obj, list):
-        return [replace_struct(i, replace) for i in obj]
-    elif isinstance(obj, tuple):
-        return tuple([replace_struct(i, replace) for i in obj])
-    else:
-        return replace.get(obj, obj)
-
-
-######## tests
-
-def test_maybe_list():
-    print [ a for a in iter_maybe_list('a')]
-    print [ a for a in iter_maybe_list(['a', 1, 2])]
-    print [ a for a in iter_maybe_list(['a', 1, 2], [10, 20, 30])]
-    print [ a for a in iter_maybe_list(['a', 1], [10, 20], [100, 110])]
-    print [ a for a in iter_maybe_list(['a', 1, 2], [10, 20])]
-
-def test_replace_struct():
-    s = {'a':[('a', 1), ['ab', 'a'], 'a', 100], 2:'a'}
-    rep = {'a': 'x'}
-    r = replace_struct(s, rep)
-    print s
-    print r
 
 def test_exec():
     gcomp = graph.CompGraph('test_graph', inp=['input', 'x'], out='y')
@@ -492,7 +378,6 @@ def test_exec():
 
 def main():
     #test_maybe_list()
-    test_replace_struct()
     test_exec()
     return
 
