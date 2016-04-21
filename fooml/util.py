@@ -3,6 +3,11 @@
 
 import sys
 
+########### for string ##########
+def indent(s, prefix='  '):
+    #print s
+    #print prefix + s.replace('\n', '\n' + prefix)
+    return prefix + s.replace('\n', '\n' + prefix)
 
 ############ for dict ############
 def key_or_keys(d):

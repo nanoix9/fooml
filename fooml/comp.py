@@ -44,7 +44,7 @@ class Comp(object):
         self._obj = obj
 
     def __str__(self):
-        return '%s:\n  obj: %s' % (self.__class__.__name__, self._obj)
+        return '%s(obj=%s)' % (self.__class__.__name__, self._obj)
 
     def __repr__(self):
         return str(self)

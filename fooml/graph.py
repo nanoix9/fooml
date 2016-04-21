@@ -9,6 +9,11 @@ import util
 
 
 _entry = c.namedtuple('_entry', 'comp, inp, out')
+def _str_entry(entry):
+    return 'input: {input}\noutput: {output}\ncomponent: {comp}' \
+            .format(input=entry.inp, output=entry.out, comp=entry.comp)
+_entry.__str__ = _str_entry
+_entry.__repr__ = _str_entry
 
 class CompGraph(object):
 
@@ -79,8 +84,10 @@ class CompGraph(object):
     def _str_comps(self):
         slist = []
         for name, c in self._comps.iteritems():
-            slist.append('\'%s\':\t%s' % (name, str(c)))
+            slist.append('\'%s\':\n%s' % (name, util.indent(str(c))))
         return '\n'.join(slist)
+
+
 
 def test_graph():
 
