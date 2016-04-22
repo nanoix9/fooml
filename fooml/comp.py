@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import util
 
 
 class Component(object):
@@ -44,10 +45,10 @@ class Comp(object):
         self._obj = obj
 
     def __str__(self):
-        return '%s(obj=%s)' % (self.__class__.__name__, self._obj)
+        return repr(self)
 
     def __repr__(self):
-        return str(self)
+        return '%s(obj=%s)' % (self.__class__.__name__, self._obj)
 
 class LambdaComp(Comp):
 
@@ -128,6 +129,9 @@ class SklearnComp(Comp):
     def fit_trans(self, data):
         X, y = data
         return self._obj.fit_transform(X, y)
+
+    def __repr__(self):
+        return '%s(\n  obj=%s)' % (self.__class__.__name__, (str(self._obj)))
 
 def main():
     return

@@ -71,10 +71,18 @@ class Executor(object):
         return out
 
     def dfs(self, graph, func):
+        logger.info('start Depth-First Searching of graph %s ...' % graph.name)
+
+        logger.debug('build fake input data to mark node visiting')
         data = util.ones_like(graph._inp)
+        logger.debug('fake input data: %s' % str(data))
+
+        logger.debug('build input buffer for each edge and the final output')
         buff = self._graph_comp_to_input(graph)
         #print buff
         out_buff = {o: None for o in util.iter_maybe_list(graph._out)}
+
+        logger.debug('setup input data to initialize graph searching')
         self.__emit_data(data, graph._inp, graph, buff, out_buff)
         stack = util.to_list(graph._inp, copy=True)
         visited = set()
@@ -85,17 +93,17 @@ class Executor(object):
                 raise ValueError('Graph has cycle(s) in it' % graph.name)
             visited.add(curr_node)
             for f, t, comp_name, acomp in graph._edges_with_attr(curr_node, attr=('name', 'comp')):
-                logger.debug('checking edge: %s -(%s)-> %s' % (f, comp_name, t)) #, acomp)
+                logger.debug('+ checking edge: %s -(%s)-> %s' % (f, comp_name, t)) #, acomp)
                 curr_input = buff[comp_name]
                 entry = graph._comps[comp_name]
                 if self.__is_inputs_ready(curr_input):
-                    logger.debug('edge "%s" ready for visiting ...' % (comp_name,))
+                    logger.debug('+ edge "%s" is ready for visiting' % (comp_name,))
                     func((comp_name, entry))
                     out = util.ones_like(entry.out)  # fake output data
                     self.__clear_inputs(curr_input)
                     self.__emit_data(out, entry.out, graph, buff, out_buff)
                     stack.extend(util.to_list(entry.out))
-                    logger.debug('current output buffer of graph: %s' % out_buff)
+                    logger.debug('+ current output buffer of graph: %s' % out_buff)
         if any(d is None for n, d in out_buff.iteritems()):
             raise ValueError('Nothing is connected to output(s): %s' \
                 % filter(lambda n: out_buff[n] is None, out_buff.keys()))
@@ -195,6 +203,8 @@ class Executor(object):
             - output: send the output to all computation units that need it
         '''
 
+        self._graph = graph
+
         logger.info('compile graph %s ...' % graph.name)
         logger.info('build output -> input mapping ...')
         oimap = self._build_oimap(graph)
@@ -202,16 +212,13 @@ class Executor(object):
 
         logger.info('build task sequence ...')
         task_seq = self._build_task_seq(graph)
-        jnr = '\n' + ' ' * 8
-        logger.debug('task sequence: %s%s' % (jnr, jnr.join(str(x) for x in task_seq)))
+        self._task_seq = task_seq
+        logger.debug('task sequence:\n%s' % util.indent(self._str_task_seq(), 8))
 
         logger.debug('replace component names with task index')
         oimap_indexed = self._indexing_comp(oimap, task_seq)
         logger.debug('OI map indexed: %s' % oimap_indexed)
-
         self._oimap = oimap_indexed
-        self._task_seq = task_seq
-        self._graph = graph
 
     def _build_task_seq(self, graph):
         task_seq = [(Executor.__INPUT__, None)]
@@ -247,14 +254,16 @@ class Executor(object):
                     one_map.append((out_idx, c_succ, inp_idx))
                 if out in util.iter_maybe_list(graph._out):
                     inp_idx = util.call_maybe_list(graph._out, list.index, out)
+                    logger.debug('++ mapping "%s": %s.out%s -> %s.in%s' \
+                            % (out, cname, util.str_index(out_idx), Executor.__OUTPUT__, util.str_index(inp_idx)))
                     one_map.append((out_idx, Executor.__OUTPUT__, inp_idx))
             return one_map
 
-        logger.debug('build oimap for graph input')
+        #logger.debug('build oimap for input')
         oimap[Executor.__INPUT__] = _get_oimap_for_outs(Executor.__INPUT__, graph._inp)
         logger.debug('build result: %s' % oimap[Executor.__INPUT__])
         for comp_name, entry in graph._comps.iteritems():
-            logger.debug('build out->in mapping for component "%s"' % comp_name)
+            #logger.debug('build out->in mapping for component "%s"' % comp_name)
             curr_map = _get_oimap_for_outs(comp_name, entry.out)
             oimap[comp_name] = curr_map
             logger.debug('build result: %s' % curr_map)
@@ -352,6 +361,19 @@ class Executor(object):
                 input_buff[c]  = di
             else:
                 input_buff[c][i] = di
+
+    def _str_task_seq(self):
+        def _str_task(i, x):
+            name, entry = x
+            if name == Executor.__INPUT__:
+                s = 'INPUT: {}'.format(str(self._graph._inp))
+            elif name == Executor.__OUTPUT__:
+                s = 'OUTPUT: {}'.format(str(self._graph._out))
+            else:
+                s = '{}\n{}'.format(name, util.indent(str(entry)))
+            return '%d. %s' % (i, s)
+        jnr = '\n'
+        return jnr.join(_str_task(i, x) for i, x in enumerate(self._task_seq))
 
     def _report_levelup(self):
         self._reporter.levelup()

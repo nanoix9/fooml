@@ -64,11 +64,11 @@ class CompGraph(object):
         return self
 
     def __str__(self):
-        return '%s:\n\t Input:  %s,\n\t Output: %s,\n\t Nodes:  %s,\n\t Edges:  %s,\n\t Components:\n%s]' % \
+        return '%s:\n  Input:  %s,\n  Output: %s,\n  Nodes:  %s,\n  Edges:  %s,\n  Components:\n%s' % \
                 (self.__class__.__name__, self._inp, self._out, \
                  self._graph.nodes(), \
                  self._str_edges_with_attr(), \
-                 self._str_comps())
+                 util.indent(self._str_comps(), 1, '\t  '))
 
     def _str_edges_with_attr(self, attr='name'):
         return str(self._edges_with_attr(attr=attr))

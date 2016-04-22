@@ -4,10 +4,11 @@
 import sys
 
 ########### for string ##########
-def indent(s, prefix='  '):
+def indent(s, ind=2, prefix=' '):
+    str_ind = prefix * ind
     #print s
     #print prefix + s.replace('\n', '\n' + prefix)
-    return prefix + s.replace('\n', '\n' + prefix)
+    return str_ind + s.replace('\n', '\n' + str_ind)
 
 ############ for dict ############
 def key_or_keys(d):
