@@ -5,39 +5,39 @@ import sys
 import util
 
 
-class Component(object):
-
-    def __init__(self, name, obj):
-        self.name = name
-        self.obj = obj
-
-class _CompList(Component):
-
-    def __init__(self, name):
-        super(_CompList, self).__init__(name, [])
-
-    def add_obj(self, name, obj):
-        self.obj.append(Component(name, obj))
-
-    def add_component(self, name, comp):
-        self.obj.append(comp)
-
-    def __iter__(self):
-        for o in self.obj:
-            yield o
-
-class Parallel(_CompList):
-
-    def __init__(self, name='parallel'):
-        super(Parallel, self).__init__(name)
-        #self._objs = (name, [])
-
-class Serial(_CompList):
-
-    def __init__(self, name='serial'):
-        super(Serial, self).__init__(name)
-        #self._objs = []
-
+#class Component(object):
+#
+#    def __init__(self, name, obj):
+#        self.name = name
+#        self.obj = obj
+#
+#class _CompList(Component):
+#
+#    def __init__(self, name):
+#        super(_CompList, self).__init__(name, [])
+#
+#    def add_obj(self, name, obj):
+#        self.obj.append(Component(name, obj))
+#
+#    def add_component(self, name, comp):
+#        self.obj.append(comp)
+#
+#    def __iter__(self):
+#        for o in self.obj:
+#            yield o
+#
+#class Parallel(_CompList):
+#
+#    def __init__(self, name='parallel'):
+#        super(Parallel, self).__init__(name)
+#        #self._objs = (name, [])
+#
+#class Serial(_CompList):
+#
+#    def __init__(self, name='serial'):
+#        super(Serial, self).__init__(name)
+#        #self._objs = []
+#
 
 class Comp(object):
 
@@ -113,25 +113,6 @@ class ConstComp(StatelessComp):
     def trans(self, data):
         print '>>>> trans of comp const:', self._obj, data
         return self._const
-
-class SklearnComp(Comp):
-
-    def __init__(self, obj):
-        self._obj = obj
-
-    def fit(self, data):
-        X, y = data
-        self._obj.fit(X, y)
-
-    def trans(self, data):
-        return self._obj.transform(data)
-
-    def fit_trans(self, data):
-        X, y = data
-        return self._obj.fit_transform(X, y)
-
-    def __repr__(self):
-        return '%s(\n  obj=%s)' % (self.__class__.__name__, (str(self._obj)))
 
 def main():
     return

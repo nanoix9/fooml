@@ -3,28 +3,34 @@
 
 import sys
 import comp
+import skcomp
 import sklearn
 import importlib
 
 class __ConfigEntry(object):
 
-    def __init__(self, module, clazz):
+    def __init__(self, comp_class, module, clazz):
+        self.comp_class = comp_class
         self.module = module
         self.clazz = clazz
 
 def create_classifier(name, package='sklearn', args=[], opt={}):
-    obj = create_obj(package, name, args, opt)
-    acomp = comp.SklearnComp(obj)
+    try:
+        conf = __get_config(package, name)
+        obj = create_obj(conf.module, conf.clazz, args, opt)
+    except KeyError:
+        obj = create_obj(package, name, args, opt)
+    acomp = conf.comp_class(obj)
     return acomp
 
 def create_obj(package, name, args=[], opt={}):
-    obj = create_or_default(package, name, args, opt)
+    #obj = create_or_default(package, name, args, opt)
+    obj = create_from_str(package, name, args, opt)
     return obj
 
 def create_or_default(package, name, args, opt):
     try:
-        conf = __get_config(package, name)
-        obj = create_from_str(conf.module, conf.clazz, args, opt)
+        obj = create_from_str()
     except KeyError:
         #raise
         obj = create_from_str(package, name, args, opt)
@@ -38,13 +44,14 @@ def create_from_str(module_name, clazz_name, args, opt):
 
 def __get_config(package, name):
     conf = __config[package][name]
-    submodule = conf[0]
-    clazz = conf[1]
-    return __ConfigEntry(package + '.' + submodule, clazz)
+    comp_class = conf[0]
+    submodule = conf[1]
+    clazz = conf[2]
+    return __ConfigEntry(comp_class, package + '.' + submodule, clazz)
 
 
 __sklearn_config = {
-        'LR': ('linear_model', 'LogisticRegression'),
+        'LR': (skcomp.Sup, 'linear_model', 'LogisticRegression'),
         }
 
 __config = {

@@ -27,7 +27,7 @@ class TxtReporter(object):
         self.level = level
 
     def report(self, msgs):
-        prefix = self.prefix * self.level
+        prefix = self.prefix * (self.level - 1)
         self._report_recur(msgs, prefix)
 
     def _report_recur(self, msgs, prefix):

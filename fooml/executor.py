@@ -43,20 +43,21 @@ class Executor(object):
         #self._report_levelup()
 
     def _train_component(self, acomp, data):
-        if isinstance(acomp, comp.Parallel):
-            self._report('training parallel "%s" ...' % acomp.name)
-            self._report_leveldown()
-            for c in acomp:
-                d = self._train_component(c, data)
-            self._report_levelup()
-        elif isinstance(acomp, comp.Serial):
-            self._report('training serial "%s" ...' % acomp.name)
-            self._report_leveldown()
-            d = data
-            for c in acomp:
-                d = self._train_component(c, d)
-            self._report_levelup()
-        elif acomp is None:
+        #if isinstance(acomp, comp.Parallel):
+        #    self._report('training parallel "%s" ...' % acomp.name)
+        #    self._report_leveldown()
+        #    for c in acomp:
+        #        d = self._train_component(c, data)
+        #    self._report_levelup()
+        #elif isinstance(acomp, comp.Serial):
+        #    self._report('training serial "%s" ...' % acomp.name)
+        #    self._report_leveldown()
+        #    d = data
+        #    for c in acomp:
+        #        d = self._train_component(c, d)
+        #    self._report_levelup()
+        #elif acomp is None:
+        if acomp is None:
             self._report('training graph compiled "%s" ...' % self._graph.name)
             out = self.run_compiled(data)
         elif isinstance(acomp, graph.CompGraph):
@@ -66,7 +67,8 @@ class Executor(object):
             #self.run_train(acomp, data)
         else:
             #print acomp
-            #self._report('training basic "%s" ...' % acomp.name)
+            self._report('training basic component:\n%s ...' \
+                    % util.indent(repr(acomp)))
             out = self._train_one(acomp, data)
         return out
 
@@ -287,7 +289,7 @@ class Executor(object):
         c_name, entry = self._task_seq[curr_task_no]
         if c_name != Executor.__INPUT__:
             raise ValueError('First task should be input!')
-        self._report('Task Input: assign input data')
+        self._report('Task %d Input: assign input data' % curr_task_no)
         self._report_leveldown()
         self.__emit_data_by_index(data, curr_task_no, input_buff)
         self._report_levelup()
@@ -299,14 +301,14 @@ class Executor(object):
             if not self._is_input_ready(curr_input):
                 raise ValueError('Task %s does not recieve all input data' % c_name)
             if c_name == Executor.__OUTPUT__:
-                self._report('Task Ouput: assign output results')
+                self._report('Task %d Ouput: assign output results' % curr_task_no)
                 self._report_leveldown()
                 ret = curr_input
                 self._report_levelup()
             else:
                 c_obj, c_inp, c_out = c_entry
-                self._report('Task %d: train component "%s"%s, input=%s, output=%s' \
-                    % (curr_task_no, c_name, c_obj.__class__, c_inp, c_out))
+                self._report('Task %d: train component "%s", input=%s, output=%s' \
+                    % (curr_task_no, c_name, c_inp, c_out))
                 self._report_leveldown()
                 out = self._train_component(c_obj, curr_input)
                 self.__emit_data_by_index(out, curr_task_no, input_buff)
