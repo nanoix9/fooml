@@ -3,7 +3,7 @@
 
 import sys
 import comp
-import skcomp
+import comp.sk as skcomp
 import sklearn
 import importlib
 

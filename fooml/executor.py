@@ -38,23 +38,23 @@ class Executor(object):
             data = self.__data_dict_to_list(start_data, self._graph._inp)
         else:
             data = start_data
-        self._train_component(acomp, data)
+        self._train_comp(acomp, data)
         #self._report_leveldown()
         #self._report_levelup()
 
-    def _train_component(self, acomp, data):
+    def _train_comp(self, acomp, data):
         #if isinstance(acomp, comp.Parallel):
         #    self._report('training parallel "%s" ...' % acomp.name)
         #    self._report_leveldown()
         #    for c in acomp:
-        #        d = self._train_component(c, data)
+        #        d = self._train_comp(c, data)
         #    self._report_levelup()
         #elif isinstance(acomp, comp.Serial):
         #    self._report('training serial "%s" ...' % acomp.name)
         #    self._report_leveldown()
         #    d = data
         #    for c in acomp:
-        #        d = self._train_component(c, d)
+        #        d = self._train_comp(c, d)
         #    self._report_levelup()
         #elif acomp is None:
         if acomp is None:
@@ -63,7 +63,7 @@ class Executor(object):
         elif isinstance(acomp, graph.CompGraph):
             self._report('training graph "%s" ...' % acomp.name)
             # TODO: refact this
-            out = self._train_component(acomp, data)
+            out = self._train_comp(acomp, data)
             #self.run_train(acomp, data)
         else:
             #print acomp
@@ -85,7 +85,7 @@ class Executor(object):
         out_buff = {o: None for o in util.iter_maybe_list(graph._out)}
 
         logger.debug('setup input data to initialize graph searching')
-        self.__emit_data(data, graph._inp, graph, buff, out_buff)
+        self._emit_data(data, graph._inp, graph, buff, out_buff)
         stack = util.to_list(graph._inp, copy=True)
         visited = set()
         while stack:
@@ -103,7 +103,7 @@ class Executor(object):
                     func((comp_name, entry))
                     out = util.ones_like(entry.out)  # fake output data
                     self.__clear_inputs(curr_input)
-                    self.__emit_data(out, entry.out, graph, buff, out_buff)
+                    self._emit_data(out, entry.out, graph, buff, out_buff)
                     stack.extend(util.to_list(entry.out))
                     logger.debug('+ current output buffer of graph: %s' % out_buff)
         if any(d is None for n, d in out_buff.iteritems()):
@@ -117,7 +117,7 @@ class Executor(object):
         buff = self._graph_comp_to_input(graph)
         out_buff = {o: None for o in util.iter_maybe_list(graph._out)}
         print buff
-        self.__emit_data(data, graph._inp, graph, buff, out_buff)
+        self._emit_data(data, graph._inp, graph, buff, out_buff)
         stack = util.to_list(graph._inp, copy=True)
         while stack:
             curr_node = stack.pop()
@@ -132,11 +132,11 @@ class Executor(object):
                             % (comp_name, graph.name))
                     real_input_data = self.__data_dict_to_list(curr_input, entry.inp)
                     print '>>> train:', acomp, real_input_data
-                    out = self._train_component(acomp, real_input_data)
+                    out = self._train_comp(acomp, real_input_data)
                     print '>>> train out:', out
                     self.__clear_inputs(curr_input)
                     #out_names = util.to_list(entry.out)
-                    self.__emit_data(out, entry.out, graph, buff, out_buff)
+                    self._emit_data(out, entry.out, graph, buff, out_buff)
                     stack.extend(util.to_list(entry.out))
                     print '>>> out of graph:', out_buff
         if any(d is None for n, d in out_buff.iteritems()):
@@ -157,7 +157,7 @@ class Executor(object):
         for k in buff:
             buff[k] = None
 
-    def __emit_data(self, data, data_names, graph, buff, out_buff):
+    def _emit_data(self, data, data_names, graph, buff, out_buff):
         #logger.debug('emit data "%s": %s' % (data, data_names))
         if any(d is None for d in util.iter_maybe_list(data)):
             raise ValueError('real data is none for data with name "%s"' % data_names)
@@ -291,7 +291,7 @@ class Executor(object):
             raise ValueError('First task should be input!')
         self._report('Task %d Input: assign input data' % curr_task_no)
         self._report_leveldown()
-        self.__emit_data_by_index(data, curr_task_no, input_buff)
+        self._emit_data_by_index(data, curr_task_no, input_buff)
         self._report_levelup()
 
         while pending:
@@ -310,8 +310,8 @@ class Executor(object):
                 self._report('Task %d: train component "%s", input=%s, output=%s' \
                     % (curr_task_no, c_name, c_inp, c_out))
                 self._report_leveldown()
-                out = self._train_component(c_obj, curr_input)
-                self.__emit_data_by_index(out, curr_task_no, input_buff)
+                out = self._train_comp(c_obj, curr_input)
+                self._emit_data_by_index(out, curr_task_no, input_buff)
                 input_buff[curr_task_no] = None  # clean input data
                 self._report_levelup()
         return ret
@@ -329,7 +329,7 @@ class Executor(object):
         #print '-----> _is_input_ready:', buff
         return all([ d is not None for d in util.iter_maybe_list(buff)])
 
-    def __emit_data_by_index(self, data, task_no, input_buff):
+    def _emit_data_by_index(self, data, task_no, input_buff):
         def _format_comp(c):
             if c is None:
                 c_name = ''

@@ -5,6 +5,7 @@ from __future__ import print_function
 
 import sys
 from log import logger
+import logging
 
 class TxtReporter(object):
 
@@ -38,12 +39,31 @@ class TxtReporter(object):
             self.report_str(str(msgs), prefix)
 
     def report_str(self, msg, prefix):
+        __cf = logging.currentframe
+        def __new_cf():
+            f = __cf()
+            name = f.f_code.co_name
+            #print(name)
+            while name != 'report_str':
+                f = f.f_back
+                name = f.f_code.co_name
+            while name.startswith('report') or name.startswith('_report') \
+                    or name.startswith('__report'):
+                #print(name)
+                f_prev = f
+                f = f.f_back
+                name = f.f_code.co_name
+            return f_prev
+        logging.currentframe = __new_cf
+
         #indent = self.__init_indent + prefix
         indent = prefix
         for line in msg.split('\n'):
             s = indent + line
             logger.info('%s' % s)
         #print(s, file=self._out)
+
+        logging.currentframe = __cf
 
     def _check_level(self, level):
         if level <= 0:
