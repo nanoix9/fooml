@@ -39,9 +39,13 @@ def desc_cate_series(series, num=5):
 
 def _summary(data):
     df = pd.DataFrame(data)
+    dh = df.head(5)
     dn = df.describe().transpose()
     dc = desc_cate(df)
-    return ['take as numeric type:', str(dn), 'take as category type:', str(dc)]
+    return ['size: %s' % str(df.shape), \
+            'head n:', str(dh), \
+            'take as numeric type:', str(dn), \
+            'take as category type:', str(dc)]
 
 
 class CateDesc(object):
