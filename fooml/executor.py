@@ -11,6 +11,7 @@ import graph
 import collections
 import util
 import report
+import stats
 from log import logger
 
 
@@ -33,43 +34,46 @@ class Executor(object):
             c = obj
         self._comp.add_component(c)
 
-    def run_train(self, start_data, acomp=None, data_keyed=False):
-        if data_keyed:
-            data = self.__data_dict_to_list(start_data, self._graph._inp)
-        else:
-            data = start_data
-        self._train_comp(acomp, data)
-        #self._report_leveldown()
-        #self._report_levelup()
-
-    def _train_comp(self, acomp, data):
-        #if isinstance(acomp, comp.Parallel):
-        #    self._report('training parallel "%s" ...' % acomp.name)
-        #    self._report_leveldown()
-        #    for c in acomp:
-        #        d = self._train_comp(c, data)
-        #    self._report_levelup()
-        #elif isinstance(acomp, comp.Serial):
-        #    self._report('training serial "%s" ...' % acomp.name)
-        #    self._report_leveldown()
-        #    d = data
-        #    for c in acomp:
-        #        d = self._train_comp(c, d)
-        #    self._report_levelup()
-        #elif acomp is None:
+    def _run_iter(self, acomp, data, func):
+        fname = func.__name__
         if acomp is None:
-            self._report('training graph compiled "%s" ...' % self._graph.name)
-            out = self.run_compiled(data)
+            self._report('running "%s" across graph compiled "%s" ...' \
+                % (fname, self._graph.name))
+            out = self.run_compiled(data, func)
         elif isinstance(acomp, graph.CompGraph):
-            self._report('training graph "%s" ...' % acomp.name)
+            self._report('running "%s" across graph "%s" ...' \
+                % (fname, acomp.name))
             # TODO: refact this
             out = self._train_comp(acomp, data)
             #self.run_train(acomp, data)
         else:
             #print acomp
-            self._report('training basic component:\n%s ...' \
-                    % util.indent(repr(acomp)))
-            out = self._train_one(acomp, data)
+            self._report('running "%s" on basic component:\n%s ...' \
+                    % (fname, util.indent(repr(acomp))))
+            out = func(acomp, data)
+        return out
+
+    def __get_data_list(self, data, keyed):
+        if keyed:
+            data_list = self.__data_dict_to_list(data, self._graph._inp)
+        else:
+            data_list = data
+        return data_list
+
+    def run_train(self, start_data, acomp=None, data_keyed=False):
+        data = self.__get_data_list(start_data, data_keyed)
+        self._train_comp(acomp, data)
+
+    def _train_comp(self, acomp, data):
+        out = self._run_iter(acomp, data, self._train_one)
+        return out
+
+    def run_test(self, start_data, acomp=None, data_keyed=False):
+        data = self.__get_data_list(start_data, data_keyed)
+        self._test_comp(acomp, data)
+
+    def _test_comp(self, acomp, data):
+        out = self._run_iter(acomp, data, self._test_one)
         return out
 
     def dfs(self, graph, func):
@@ -114,6 +118,7 @@ class Executor(object):
         return ret
 
     def _train_graph(self, graph, data):
+        raise NotImplementedError('')
         buff = self._graph_comp_to_input(graph)
         out_buff = {o: None for o in util.iter_maybe_list(graph._out)}
         print buff
@@ -192,7 +197,28 @@ class Executor(object):
         return c2i
 
     def _train_one(self, basic_comp, data):
-        return basic_comp.fit_trans(data)
+        #self._desc_data(data, self._graph.)
+        out = basic_comp.fit_trans(data)
+        #self._desc_data(out)
+        return out
+
+    def _test_one(self, basic_comp, data):
+        #self._desc_data(data)
+        out = basic_comp.trans(data)
+        #self._desc_data(out)
+        return out
+
+    def _desc_data(self, data, names):
+        if isinstance(names, (list, tuple)):
+            self._report('summary of data "%s":' % str(names))
+            for i, d in enumerate(data):
+                self._desc_data(d, names[i])
+        else:
+            s = stats.summary(data)
+            self._report('summary of data "%s":' % names)
+            # self._report_leveldown()
+            self._report(s)
+            # self._report_levelup()
 
     def compile_graph(self, graph):
         ''' compile a graph to a sequence of computations
@@ -271,7 +297,7 @@ class Executor(object):
             logger.debug('build result: %s' % curr_map)
         return oimap
 
-    def run_compiled(self, data):
+    def run_compiled(self, data, func):
         self._report('Run Compiled Graph "%s" ...' % self._graph.name)
 
         if self._task_seq is None:
@@ -310,7 +336,11 @@ class Executor(object):
                 self._report('Task %d: train component "%s", input=%s, output=%s' \
                     % (curr_task_no, c_name, c_inp, c_out))
                 self._report_leveldown()
-                out = self._train_comp(c_obj, curr_input)
+                self._report('Summary of input of "%s"' % c_name)
+                self._desc_data(curr_input, c_inp)
+                out = self._run_iter(c_obj, curr_input, func)
+                self._report('Summary of output of "%s"' % c_name)
+                self._desc_data(out, c_out)
                 self._emit_data_by_index(out, curr_task_no, input_buff)
                 input_buff[curr_task_no] = None  # clean input data
                 self._report_levelup()

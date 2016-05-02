@@ -75,7 +75,8 @@ class FooML(object):
         self._exec.run_train(self._ds, data_keyed=True)
 
         self._report('Run Testing ...')
-        #self._exec.run_test()
+        ds = { k: v.X for k, v in self._ds.iteritems() }
+        self._exec.run_test(ds, data_keyed=True)
 
     def desc_data(self):
         self._report('Quick Summary of Original Data')
