@@ -62,7 +62,7 @@ class Executor(object):
 
     def run_train(self, start_data, acomp=None, data_keyed=False):
         data = self.__get_data_list(start_data, data_keyed)
-        self._train_comp(acomp, data)
+        return self._train_comp(acomp, data)
 
     def _train_comp(self, acomp, data):
         out = self._run_iter(acomp, data, self._train_one)
@@ -70,7 +70,7 @@ class Executor(object):
 
     def run_test(self, start_data, acomp=None, data_keyed=False):
         data = self.__get_data_list(start_data, data_keyed)
-        self._test_comp(acomp, data)
+        return self._test_comp(acomp, data)
 
     def _test_comp(self, acomp, data):
         out = self._run_iter(acomp, data, self._test_one)

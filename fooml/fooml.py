@@ -26,6 +26,7 @@ class FooML(object):
         self._comp = graph.CompGraph('main')
         self._exec = executor.Executor(self._reporter)
         self._target = None
+        self._outputs = []
 
     def use_data(self, data):
         name = data
@@ -44,7 +45,7 @@ class FooML(object):
         self._ds[name] = ds
         #print self._ds
 
-    def add_comp(self, acomp, name, inp, out):
+    def add_comp(self, name, acomp, inp, out):
         return self._comp.add_comp(name, acomp, inp, out)
 
     def add_classifier(self, name, input, output=__NULL, comp=None):
@@ -52,7 +53,21 @@ class FooML(object):
             clf = factory.create_classifier(name)
         else:
             clf = comp
-        self.add_comp(clf, name, input, output)
+        self.add_comp(name, clf, input, output)
+        return self
+
+    def evaluate(self, indic, pred, comp=None):
+        if comp is not None:
+            self.add_comp(indic, comp, pred, __NULL)
+        else:
+            for i in util.iter_maybe_list(indic):
+                eva = factory.create_evaluator(i)
+                self.add_comp(i, eva, pred, __NULL)
+        return self
+
+    def save_output(self, outs):
+        self._outputs.extend(util.iter_maybe_list(outs))
+        return self
 
     def set_target(self, target):
         self._target = target
@@ -63,7 +78,8 @@ class FooML(object):
 
     def run(self):
         self._comp.set_input(util.key_or_keys(self._ds))
-        self._comp.set_output(FooML.__NULL)
+        #self._comp.set_output(self._outputs + [FooML.__NULL])
+        self._comp.set_output(self._outputs)
 
         self.show()
         self.desc_data()
@@ -72,11 +88,12 @@ class FooML(object):
         self._exec.compile_graph(self._comp)
 
         self._report('Training ...')
-        self._exec.run_train(self._ds, data_keyed=True)
+        out = self._exec.run_train(self._ds, data_keyed=True)
 
         self._report('Run Testing ...')
         ds = { k: v.X for k, v in self._ds.iteritems() }
-        self._exec.run_test(ds, data_keyed=True)
+        out = self._exec.run_test(ds, data_keyed=True)
+        print out
 
     def desc_data(self):
         self._report('Quick Summary of Original Data')
@@ -117,10 +134,11 @@ def __test1():
     foo.use_data('iris')
     #foo.add_cutter('adapt', input='iris', output='cutted')
     #foo.add_fsel('Kbest', input='cutted', output='x')
-    foo.add_classifier('LR', input='iris')
+    foo.add_classifier('LR', input='iris', output='y.lr')
     #foo.add_classifier('RandomForest', input='x')
     #foo.cross_validate('K', k=4)
-    #foo.evaluate('AUC')
+    #foo.evaluate('AUC', pred=['y.lr'])
+    foo.save_output('y.lr')
     foo.run()
 
 def main():
