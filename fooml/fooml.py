@@ -12,6 +12,7 @@ import executor
 import graph
 import factory
 import util
+from dt import slist
 
 
 class FooML(object):
@@ -60,13 +61,13 @@ class FooML(object):
         if comp is not None:
             self.add_comp(indic, comp, pred, __NULL)
         else:
-            for i in util.iter_maybe_list(indic):
+            for i in slist.iter_multi(indic):
                 eva = factory.create_evaluator(i)
                 self.add_comp(i, eva, pred, __NULL)
         return self
 
     def save_output(self, outs):
-        self._outputs.extend(util.iter_maybe_list(outs))
+        self._outputs.extend(slist.iter_multi(outs))
         return self
 
     def set_target(self, target):

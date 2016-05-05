@@ -101,16 +101,6 @@ def map_maybe_list(func, obj):
     else:
         return func(obj)
 
-########### for tuple ###########
-def maybe_tuple(obj):
-    if isinstance(obj, (tuple, list)):
-        if len(obj) > 1:
-            return tuple(obj)
-        else:
-            return obj[0]
-    else:
-        return obj
-
 ######### misc ##########
 def replace_struct(obj, replace):
     if isinstance(obj, dict):

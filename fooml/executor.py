@@ -10,6 +10,7 @@ import comp
 import graph
 import collections
 import util
+from dt import slist
 import report
 import stats
 from log import logger
@@ -80,17 +81,17 @@ class Executor(object):
         logger.info('start Depth-First Searching of graph %s ...' % graph.name)
 
         logger.debug('build fake input data to mark node visiting')
-        data = util.ones_like(graph._inp)
+        data = slist.ones_like(graph._inp)
         logger.debug('fake input data: %s' % str(data))
 
         logger.debug('build input buffer for each edge and the final output')
         buff = self._graph_comp_to_input(graph)
         #print buff
-        out_buff = {o: None for o in util.iter_maybe_list(graph._out)}
+        out_buff = {o: None for o in slist.iter_multi(graph._out)}
 
         logger.debug('setup input data to initialize graph searching')
         self._emit_data(data, graph._inp, graph, buff, out_buff)
-        stack = util.to_list(graph._inp, copy=True)
+        stack = slist.to_list(graph._inp, copy=True)
         visited = set()
         while stack:
             curr_node = stack.pop()
@@ -105,10 +106,10 @@ class Executor(object):
                 if self.__is_inputs_ready(curr_input):
                     logger.debug('+ edge "%s" is ready for visiting' % (comp_name,))
                     func((comp_name, entry))
-                    out = util.ones_like(entry.out)  # fake output data
+                    out = slist.ones_like(entry.out)  # fake output data
                     self.__clear_inputs(curr_input)
                     self._emit_data(out, entry.out, graph, buff, out_buff)
-                    stack.extend(util.to_list(entry.out))
+                    stack.extend(slist.to_list(entry.out))
                     logger.debug('+ current output buffer of graph: %s' % out_buff)
         if any(d is None for n, d in out_buff.iteritems()):
             raise ValueError('Nothing is connected to output(s): %s' \
@@ -120,10 +121,10 @@ class Executor(object):
     def _train_graph(self, graph, data):
         raise NotImplementedError('')
         buff = self._graph_comp_to_input(graph)
-        out_buff = {o: None for o in util.iter_maybe_list(graph._out)}
+        out_buff = {o: None for o in slist.iter_multi(graph._out)}
         print buff
         self._emit_data(data, graph._inp, graph, buff, out_buff)
-        stack = util.to_list(graph._inp, copy=True)
+        stack = slist.to_list(graph._inp, copy=True)
         while stack:
             curr_node = stack.pop()
             self._report('Dataset "%s" in graph "%s" is ready' \
@@ -140,9 +141,9 @@ class Executor(object):
                     out = self._train_comp(acomp, real_input_data)
                     print '>>> train out:', out
                     self.__clear_inputs(curr_input)
-                    #out_names = util.to_list(entry.out)
+                    #out_names = slist.to_list(entry.out)
                     self._emit_data(out, entry.out, graph, buff, out_buff)
-                    stack.extend(util.to_list(entry.out))
+                    stack.extend(slist.to_list(entry.out))
                     print '>>> out of graph:', out_buff
         if any(d is None for n, d in out_buff.iteritems()):
             raise ValueError('Output did not get an value: %s' \
@@ -156,7 +157,7 @@ class Executor(object):
 
     def __data_dict_to_list(self, data_dict, input_names):
         #print data_dict
-        return util.map_maybe_list(lambda n: data_dict[n], input_names)
+        return slist.map(lambda n: data_dict[n], input_names)
 
     def __clear_inputs(self, buff):
         for k in buff:
@@ -164,9 +165,9 @@ class Executor(object):
 
     def _emit_data(self, data, data_names, graph, buff, out_buff):
         #logger.debug('emit data "%s": %s' % (data, data_names))
-        if any(d is None for d in util.iter_maybe_list(data)):
+        if any(d is None for d in slist.iter_multi(data)):
             raise ValueError('real data is none for data with name "%s"' % data_names)
-        data_dict = { n:d for n, d in util.iter_maybe_list(data_names, data) }
+        data_dict = { n:d for n, d in slist.iter_multi(data_names, data) }
         #print data_dict
         #sys.exit()
         #logger.debug('buffer before emit: %s' % buff)
@@ -193,7 +194,7 @@ class Executor(object):
         #for f, t, cn in graph._edges_with_attr():
         #    c2i[cn] = { fi: None for fi in f }
         for name, (_, inp, out) in graph._comps.iteritems():
-            c2i[name] = { i: None for i in util.iter_maybe_list(inp) }
+            c2i[name] = { i: None for i in slist.iter_multi(inp) }
         return c2i
 
     def _train_one(self, basic_comp, data):
@@ -272,18 +273,18 @@ class Executor(object):
             #one_map = collections.defaultdict(list)
             one_map = []
             logger.debug('build for outputs %s: %s' % (cname, outs))
-            for out_idx, out in util.enumerate_maybe_list(outs):
-                logger.debug('+ build for output%s "%s"' % (util.str_index(out_idx), out))
+            for out_idx, out in slist.enumerate_multi(outs):
+                logger.debug('+ build for output%s "%s"' % (slist.str_index(out_idx), out))
                 for f, t, c_succ in graph._edges_with_attr(out):
                     logger.debug('++ edge: %s -(%s)-> %s' % (f, c_succ, t))
-                    inp_idx = util.call_maybe_list(graph._comps[c_succ].inp, list.index, out)
+                    inp_idx = slist.index(graph._comps[c_succ].inp, out)
                     logger.debug('++ mapping "%s": %s.out%s -> %s.in%s' \
-                            % (out, cname, util.str_index(out_idx), c_succ, util.str_index(inp_idx)))
+                            % (out, cname, slist.str_index(out_idx), c_succ, slist.str_index(inp_idx)))
                     one_map.append((out_idx, c_succ, inp_idx))
-                if out in util.iter_maybe_list(graph._out):
-                    inp_idx = util.call_maybe_list(graph._out, list.index, out)
+                if out in slist.iter_multi(graph._out):
+                    inp_idx = slist.index(graph._out, out)
                     logger.debug('++ mapping "%s": %s.out%s -> %s.in%s' \
-                            % (out, cname, util.str_index(out_idx), Executor.__OUTPUT__, util.str_index(inp_idx)))
+                            % (out, cname, slist.str_index(out_idx), Executor.__OUTPUT__, slist.str_index(inp_idx)))
                     one_map.append((out_idx, Executor.__OUTPUT__, inp_idx))
             return one_map
 
@@ -352,12 +353,12 @@ class Executor(object):
             for cname, (c_obj, c_inp, c_out) in self._task_seq[1:-1]:
                 yield c_inp
             yield self._graph._out
-        buff = [ util.nones_like(inp) for inp in _iter_task_inp() ]
+        buff = [ slist.nones_like(inp) for inp in _iter_task_inp() ]
         return buff
 
     def _is_input_ready(self, buff):
         #print '-----> _is_input_ready:', buff
-        return all([ d is not None for d in util.iter_maybe_list(buff)])
+        return all([ d is not None for d in slist.iter_multi(buff)])
 
     def _emit_data_by_index(self, data, task_no, input_buff):
         def _format_comp(c):
@@ -370,25 +371,25 @@ class Executor(object):
         def _format_output(c, i):
             c_name = self._task_seq[c][0]
             if c_name == Executor.__INPUT__:
-                i_name = util.get_maybe_list(self._graph._inp, i)
+                i_name = slist.get(self._graph._inp, i)
             else:
-                i_name = util.get_maybe_list(self._task_seq[c][1].out, i)
-            return 'output%s:"%s"' % (util.str_index(i), i_name)
+                i_name = slist.get(self._task_seq[c][1].out, i)
+            return 'output%s:"%s"' % (slist.str_index(i), i_name)
 
         def _format_input(c, i):
             c_name = self._task_seq[c][0]
             if c_name == Executor.__OUTPUT__:
-                i_name = util.get_maybe_list(self._graph._out, i)
+                i_name = slist.get(self._graph._out, i)
             else:
-                i_name = util.get_maybe_list(self._task_seq[c][1].inp, i)
-            return 'input%s:"%s"' % (util.str_index(i), i_name)
+                i_name = slist.get(self._task_seq[c][1].inp, i)
+            return 'input%s:"%s"' % (slist.str_index(i), i_name)
 
         oimap = self._oimap[task_no]
         for o, c, i in oimap:
             self._report('emit data "%s".%s -> "%s".%s' \
                     % (_format_comp(task_no), _format_output(task_no, o), \
                        _format_comp(c), _format_input(c, i)))
-            di = util.get_maybe_list(data, o)
+            di = slist.get(data, o)
             if i is None:
                 input_buff[c]  = di
             else:
