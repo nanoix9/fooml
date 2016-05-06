@@ -5,6 +5,7 @@ import sys
 import networkx as nx
 import collections as c
 import comp
+from dt import slist
 import util
 
 
@@ -56,8 +57,8 @@ class CompGraph(object):
         if name in self._comps:
             raise ValueError('Component %s already exists!' %s)
         self._comps[name] = _entry(acomp, inp, out)
-        inp_list = util.to_list(inp)
-        out_list = util.to_list(out)
+        inp_list = slist.to_list(inp)
+        out_list = slist.to_list(out)
         self._add_nodes(inp_list)
         self._add_nodes(out_list)
         self._add_edges(inp_list, out_list, name=name, comp=acomp)

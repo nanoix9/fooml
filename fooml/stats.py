@@ -2,11 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import numpy as np
 import pandas as pd
 import dataset
 
 def summary(data):
-    if isinstance(data, dataset.ds_xy_t):
+    if isinstance(data, dataset.dsxy):
         xdesc = _summary(data.X)
         ydesc = _summary(data.y)
         desc = ['summary of target y:',
@@ -14,6 +15,16 @@ def summary(data):
                 'summary of feature X:',
                 xdesc,
                 ]
+    elif isinstance(data, dataset.dssy):
+        xdesc = _summary(data.score)
+        ydesc = _summary(data.y)
+        desc = ['summary of score:',
+                xdesc,
+                'summary of true value:',
+                ydesc,
+                ]
+    elif isinstance(data, dataset.desc):
+        desc = str(data)
     elif _is_test_data(data):
         desc = 'Testing data: ' + str(data)
     else:
@@ -40,7 +51,13 @@ def desc_cate_series(series, num=5):
     return s_all.append(s)
 
 def _summary(data):
-    df = pd.DataFrame(data)
+    if isinstance(data, pd.DataFrame):
+        df = data
+    elif isinstance(data, np.ndarray):
+        df = pd.DataFrame(data)
+    else:
+        raise ValueError('unknown data type: %s' % type(data))
+
     dh = df.head(5)
     dn = df.describe().transpose()
     dc = desc_cate(df)

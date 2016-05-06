@@ -65,9 +65,10 @@ class slist(object):
 
     #def enumerate_maybe_list(obj, *args):
     @staticmethod
-    def enumerate_multi(obj, *args):
+    def enumerate_multi(obj, *args, **kwds):
         #print 'iter_multi args:', obj, args
-        if slist._is_coll(obj):
+        strict = kwds.get('strict', False)
+        if slist._is_coll(obj, strict):
             if any([len(a) != len(obj) for a in args]):
                 raise ValueError('length of lists are not identical')
             for i, o in enumerate(obj):
@@ -76,9 +77,10 @@ class slist(object):
             yield tuple((None, obj) + args)
 
     @staticmethod
-    def iter_multi(obj, *args):
+    def iter_multi(obj, *args, **kwds):
         #print 'iter_multi args:', obj, args
-        if slist._is_coll(obj):
+        strict = kwds.get('strict', False)
+        if slist._is_coll(obj, strict):
             if any([len(a) != len(obj) for a in args]):
                 raise ValueError('length of lists are not identical')
             for i, o in enumerate(obj):
@@ -95,8 +97,11 @@ class slist(object):
             return func(obj)
 
     @staticmethod
-    def _is_coll(obj):
-        return isinstance(obj, (tuple, list))
+    def _is_coll(obj, strict=False):
+        if strict:
+            return isinstance(obj, list)
+        else:
+            return isinstance(obj, (tuple, list))
 
 class stuple(object):
 

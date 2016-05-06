@@ -5,8 +5,38 @@ import sys
 import sklearn.datasets as ds
 import collections as c
 
-ds_xy_t = c.namedtuple('ds_xy_t', 'X, y')
+#dsxy = c.namedtuple('dsxy', 'X, y')
+#dssy = c.namedtuple('dssy', 'score, y')
+
 ds_train_test_xy_t = c.namedtuple('ds_train_test_xy_t', 'train, test')
+
+class dsxy(object):
+
+    def __init__(self, X, y):
+        self.X = X
+        self.y = y
+
+    def __iter__(self):
+        yield self.X
+        yield self.y
+
+class dssy(object):
+
+    def __init__(self, score, y):
+        self.score = score
+        self.y = y
+
+    def __iter__(self):
+        yield self.score
+        yield self.y
+
+class desc(object):
+
+    def __init__(self, desc):
+        self.cnt = desc
+
+    def __repr__(self):
+        return str(self.cnt)
 
 class Dataset(object):
 
@@ -27,7 +57,7 @@ def load_toy(name):
     name = name.lower()
     if name == 'iris':
         ret = ds.load_iris()
-        return ds_xy_t(ret['data'], ret['target'])
+        return dsxy(ret['data'], ret['target'])
 
 def main():
     return

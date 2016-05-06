@@ -59,11 +59,11 @@ class FooML(object):
 
     def evaluate(self, indic, pred, comp=None):
         if comp is not None:
-            self.add_comp(indic, comp, pred, __NULL)
+            self.add_comp(indic, comp, pred, FooML.__NULL)
         else:
             for i in slist.iter_multi(indic):
                 eva = factory.create_evaluator(i)
-                self.add_comp(i, eva, pred, __NULL)
+                self.add_comp(i, eva, pred, FooML.__NULL)
         return self
 
     def save_output(self, outs):
@@ -80,7 +80,10 @@ class FooML(object):
     def run(self):
         self._comp.set_input(util.key_or_keys(self._ds))
         #self._comp.set_output(self._outputs + [FooML.__NULL])
-        self._comp.set_output(self._outputs)
+        if self._outputs:
+            self._comp.set_output(self._outputs)
+        else:
+            self._comp.set_output(FooML.__NULL)
 
         self.show()
         self.desc_data()
@@ -138,7 +141,7 @@ def __test1():
     foo.add_classifier('LR', input='iris', output='y.lr')
     #foo.add_classifier('RandomForest', input='x')
     #foo.cross_validate('K', k=4)
-    #foo.evaluate('AUC', pred=['y.lr'])
+    foo.evaluate('AUC', pred=['y.lr'])
     foo.save_output('y.lr')
     foo.run()
 
