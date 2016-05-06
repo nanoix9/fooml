@@ -14,6 +14,8 @@ def summary(data):
                 'summary of feature X:',
                 xdesc,
                 ]
+    elif _is_test_data(data):
+        desc = 'Testing data: ' + str(data)
     else:
         desc = _summary(data)
     return desc
@@ -47,6 +49,10 @@ def _summary(data):
             'take as numeric type:', str(dn), \
             'take as category type:', str(dc)]
 
+def _is_test_data(data):
+    ret = isinstance(data, (int, float, basestring)) \
+            or (isinstance(data, (list, tuple, dict, set)) and len(data) < 10)
+    return ret
 
 class CateDesc(object):
     def __init__(self, d):

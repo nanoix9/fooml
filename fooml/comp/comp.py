@@ -3,6 +3,7 @@
 
 import sys
 import util
+from log import logger
 
 
 #class Component(object):
@@ -67,7 +68,7 @@ class LambdaComp(Comp):
         return None
 
     def trans(self, data):
-        print '>>>> trans of comp lambda:', self._obj, data
+        logger.debug('trans of comp lambda: %s %s' % (self._obj, data))
         #print self._trans(self._obj, data)
         return self._trans(self._obj, data)
 
@@ -97,11 +98,11 @@ class PassComp(StatelessComp):
         super(PassComp, self).__init__('fake_obj')
 
     def trans(self, data):
-        print '>>>> trans of comp pass through:', self._obj, data
+        logger.debug('trans of comp pass through: %s, %s' % (self._obj, data))
         return data
 
     def fit_trans(self, data):
-        print '>>>> fit_trans of comp pass through:', self._obj, data
+        logger.debug('fit_trans of comp pass through: %s, %s' % (self._obj, data))
         return data
 
 class ConstComp(StatelessComp):
@@ -111,7 +112,7 @@ class ConstComp(StatelessComp):
         self._const = const
 
     def trans(self, data):
-        print '>>>> trans of comp const:', self._obj, data
+        logger.debug('trans of comp const: %s, %s' % (self._obj, data))
         return self._const
 
 def main():
