@@ -35,10 +35,22 @@ def summary(data):
 
 def desc_cate(data):
     if isinstance(data, pd.DataFrame):
-        s = CateDesc([(col, desc_cate_series(data[col])) for col in data])
+        d = []
+        for col in data:
+            dc = desc_cate_series(data[col])
+            if dc is not None:
+                d.append((col, dc))
+        if d:
+            s = CateDesc(d)
+        else:
+            s = None
     elif isinstance(data, pd.Series):
-        name = data.name or 'data'
-        s = pd.DataFrame(dict(name=desc_cate_series(data))).transpose()
+        d = desc_cate_series(data)
+        if d is not None:
+            name = data.name or 'data'
+            s = pd.DataFrame(dict(name=d)).transpose()
+        else:
+            s = None
     return s
 
 def desc_cate_series(series, num=5):
@@ -46,11 +58,15 @@ def desc_cate_series(series, num=5):
     #series = pd.Categorical(series)
     cnt = series.size
     distinct = series.nunique()  # someone said len(unique()) is 3-15x faster
-    s_all = pd.Series([cnt, distinct], index=['count', 'unique'])
-    s = series.groupby(series).count()
-    s.sort_values(inplace=True, ascending=False)
-    s = s.head(num)
-    return s_all.append(s)
+    if distinct < cnt / 2:
+        s_all = pd.Series([cnt, distinct], index=['count', 'unique'])
+        s = series.groupby(series).count()
+        s.sort_values(inplace=True, ascending=False)
+        s = s.head(num)
+        ret = s_all.append(s)
+    else:
+        ret = None
+    return ret
 
 def _summary(data):
     if isinstance(data, pd.DataFrame):
@@ -63,10 +79,15 @@ def _summary(data):
     dh = df.head(5)
     dn = df.describe().transpose()
     dc = desc_cate(df)
-    return ['size: %s' % str(df.shape), \
+    ret = ['size: %s' % str(df.shape), \
             'head n:', str(dh), \
-            'take as numeric type:', str(dn), \
-            'take as category type:', str(dc)]
+            'take as numeric type:', str(dn)]
+    ret.append('take as category type:')
+    if dc:
+        ret.append(str(dc))
+    else:
+        ret.append('  seems not to be categorical')
+    return ret
 
 def _is_small_data(data):
     ret = isinstance(data, (int, float, basestring)) \
@@ -81,6 +102,7 @@ class CateDesc(object):
         return __str__
 
     def __str__(self):
+        #print self._data
         str_list = [ str(pd.DataFrame({n:s}).transpose()) for n, s in self._data ]
         return '\n'.join(str_list)
 
