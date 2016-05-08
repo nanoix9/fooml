@@ -7,7 +7,9 @@ import pandas as pd
 import dataset
 
 def summary(data):
-    if isinstance(data, dataset.dsxy):
+    if data is None:
+        desc = '  data is NONE'
+    elif isinstance(data, dataset.dsxy):
         xdesc = _summary(data.X)
         ydesc = _summary(data.y)
         desc = ['summary of target y:',
@@ -24,9 +26,9 @@ def summary(data):
                 ydesc,
                 ]
     elif isinstance(data, dataset.desc):
-        desc = str(data)
-    elif _is_test_data(data):
-        desc = 'Testing data: ' + str(data)
+        desc = '  ' + str(data)
+    elif _is_small_data(data):
+        desc = '  value: ' + str(data)
     else:
         desc = _summary(data)
     return desc
@@ -66,7 +68,7 @@ def _summary(data):
             'take as numeric type:', str(dn), \
             'take as category type:', str(dc)]
 
-def _is_test_data(data):
+def _is_small_data(data):
     ret = isinstance(data, (int, float, basestring)) \
             or (isinstance(data, (list, tuple, dict, set)) and len(data) < 10)
     return ret

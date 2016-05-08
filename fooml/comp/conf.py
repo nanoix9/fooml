@@ -3,6 +3,9 @@
 
 import sys
 from . import sk
+from . import misc
+
+DEFAULT = '__default__'
 
 class ConfigEntry(object):
 
@@ -16,17 +19,26 @@ def get_config(package, name):
     comp_class = conf[0]
     submodule = conf[1]
     clazz = conf[2]
-    return ConfigEntry(comp_class, package + '.' + submodule, clazz)
+    if package == DEFAULT:
+        full_module = submodule
+    else:
+        full_module = package + '.' + submodule
+    return ConfigEntry(comp_class, full_module, clazz)
 
+
+__default_config = {
+        'binclass': (misc.TargTransComp, 'fooml.proc', 'binclass')
+        }
 
 __sklearn_config = {
-        'LR': (sk.Sup, 'linear_model', 'LogisticRegression'),
+        'LR': (sk.Clf, 'linear_model', 'LogisticRegression'),
 
         'AUC': (sk.Eva, 'metrics', 'roc_auc_score'),
         }
 
 __config = {
         'sklearn': __sklearn_config,
+        DEFAULT: __default_config,
         }
 
 

@@ -3,7 +3,6 @@
 
 import sys
 import comp
-import comp.sk as skcomp
 import comp.conf
 import importlib
 import inspect
@@ -14,6 +13,9 @@ def create_classifier(name, package='sklearn', args=[], opt={}):
     return create_comp(package, name, args, opt)
 
 def create_evaluator(name, package='sklearn', args=[], opt={}):
+    return create_comp(package, name, args, opt)
+
+def create_trans(name, package=comp.conf.DEFAULT, args=[], opt={}):
     return create_comp(package, name, args, opt)
 
 def create_comp(package, name, args, opt):

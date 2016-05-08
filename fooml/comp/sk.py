@@ -3,16 +3,13 @@
 
 import sys
 import comp
-import dataset
-from dt import slist
+from fooml import dataset
+from fooml.dt import slist
 
 class SkComp(comp.Comp):
 
     def __init__(self, obj):
         super(SkComp, self).__init__(obj)
-
-    def __repr__(self):
-        return '%s(\n  obj=%s)' % (self.__class__.__name__, (str(self._obj)))
 
     def trans(self, data):
         return self._obj.transform(data)
@@ -26,10 +23,10 @@ class SkComp(comp.Comp):
         #print self._obj
         #return self._obj.fit_transform(X, y)
 
-class Sup(SkComp):
+class Clf(SkComp):
 
     def __init__(self, obj):
-        super(Sup, self).__init__(obj)
+        super(Clf, self).__init__(obj)
 
     def fit(self, data):
         X, y = data
@@ -37,6 +34,14 @@ class Sup(SkComp):
 
     def trans(self, X):
         score = self._obj.predict_proba(X)
+        #print '>>>>>', self._obj.classes_
+        #sys.exit()
+        # if it is a binary classification problem, return a 1-D array
+        # of probablities of class 1
+        if score.shape[1] == 2:
+            score = score[:,1]
+            #print score
+        #sys.exit()
         return score
 
     def fit_trans(self, data):
@@ -65,7 +70,7 @@ class Eva(SkComp):
             score, y = d
             eva = self._obj(y, score, *self.args, **self.opt)
             eva_list.append(eva)
-        return dataset.desc(eva)
+        return dataset.desc('scores: ' + str(eva))
 
 
 def main():

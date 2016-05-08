@@ -47,19 +47,28 @@ class FooML(object):
         #print self._ds
 
     def add_comp(self, name, acomp, inp, out):
-        return self._comp.add_comp(name, acomp, inp, out)
-
-    def add_classifier(self, name, input, output=__NULL, comp=None):
-        if comp is None:
-            clf = factory.create_classifier(name)
-        else:
-            clf = comp
-        self.add_comp(name, clf, input, output)
+        self._comp.add_comp(name, acomp, inp, out)
         return self
 
-    def evaluate(self, indic, pred, comp=None):
-        if comp is not None:
-            self.add_comp(indic, comp, pred, FooML.__NULL)
+    def add_comp_with_creator(self, name, acomp, inp, out, creator=None):
+        if isinstance(acomp, basestring):
+            clf = creator(acomp)
+        else:
+            clf = acomp
+        self.add_comp(name, clf, inp, out)
+        return self
+
+    def add_ds_trans(self, name, acomp, input, output):
+        self.add_comp_with_creator(name, acomp, input, output, factory.create_trans)
+        return self
+
+    def add_classifier(self, name, acomp, input, output=__NULL):
+        self.add_comp_with_creator(name, acomp, input, output, factory.create_classifier)
+        return self
+
+    def evaluate(self, indic, pred, acomp=None):
+        if acomp is not None:
+            self.add_comp(indic, acomp, pred, FooML.__NULL)
         else:
             for i in slist.iter_multi(indic):
                 eva = factory.create_evaluator(i)
@@ -97,7 +106,7 @@ class FooML(object):
         self._report('Run Testing ...')
         ds = { k: v.X for k, v in self._ds.iteritems() }
         out = self._exec.run_test(ds, data_keyed=True)
-        print out
+        print 'final output:\n', out
 
     def desc_data(self):
         self._report('Quick Summary of Original Data')
@@ -138,7 +147,8 @@ def __test1():
     foo.use_data('iris')
     #foo.add_cutter('adapt', input='iris', output='cutted')
     #foo.add_fsel('Kbest', input='cutted', output='x')
-    foo.add_classifier('LR', input='iris', output='y.lr')
+    foo.add_ds_trans('binclass', 'binclass', input='iris', output='iris.2')
+    foo.add_classifier('lr', 'LR', input='iris.2', output='y.lr')
     #foo.add_classifier('RandomForest', input='x')
     #foo.cross_validate('K', k=4)
     foo.evaluate('AUC', pred=['y.lr'])

@@ -38,18 +38,18 @@ class Executor(object):
     def _run_iter(self, acomp, data, func):
         fname = func.__name__
         if acomp is None:
-            self._report('running "%s" across graph compiled "%s" ...' \
+            self._report('run "%s" across graph compiled "%s"' \
                 % (fname, self._graph.name))
             out = self.run_compiled(data, func)
         elif isinstance(acomp, graph.CompGraph):
-            self._report('running "%s" across graph "%s" ...' \
+            self._report('run "%s" across graph "%s"' \
                 % (fname, acomp.name))
             # TODO: refact this
             out = self._train_comp(acomp, data)
             #self.run_train(acomp, data)
         else:
             #print acomp
-            self._report('running "%s" on basic component:\n%s ...' \
+            self._report('run "%s" on basic component:\n%s' \
                     % (fname, util.indent(repr(acomp))))
             out = func(acomp, data)
         return out
@@ -211,7 +211,7 @@ class Executor(object):
 
     def _desc_data(self, data, names):
         if isinstance(names, (list, tuple)):
-            self._report('summary of data "%s":' % str(names))
+            #self._report('summary of data "%s":' % str(names))
             for i, d in enumerate(data):
                 self._desc_data(d, names[i])
         else:
@@ -337,10 +337,10 @@ class Executor(object):
                 self._report('Task %d: train component "%s", input=%s, output=%s' \
                     % (curr_task_no, c_name, c_inp, c_out))
                 self._report_leveldown()
-                self._report('Summary of input of "%s"' % c_name)
+                self._report('Summary of input of "%s": %s' % (c_name, c_inp))
                 self._desc_data(curr_input, c_inp)
                 out = self._run_iter(c_obj, curr_input, func)
-                self._report('Summary of output of "%s"' % c_name)
+                self._report('Summary of output of "%s": %s' % (c_name, c_out))
                 self._desc_data(out, c_out)
                 self._emit_data_by_index(out, curr_task_no, input_buff)
                 input_buff[curr_task_no] = None  # clean input data
