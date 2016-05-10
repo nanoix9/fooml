@@ -234,20 +234,26 @@ class Executor(object):
 
         self._graph = graph
 
-        logger.info('compile graph %s ...' % graph.name)
+        self._report('compile graph %s' % graph.name)
+        self._report_leveldown()
+
         logger.info('build output -> input mapping ...')
         oimap = self._build_oimap(graph)
-        logger.debug('OI mapping: %s' % oimap)
+        self._report(['OI mapping:', \
+                ['%s: %s' % (k, v) for k, v in oimap.iteritems()]])
 
         logger.info('build task sequence ...')
         task_seq = self._build_task_seq(graph)
         self._task_seq = task_seq
-        logger.debug('task sequence:\n%s' % util.indent(self._str_task_seq(), 8))
+        self._report('task sequence:\n%s' % util.indent(self._str_task_seq(), 8))
 
-        logger.debug('replace component names with task index')
+        logger.info('replace component names with task index')
         oimap_indexed = self._indexing_comp(oimap, task_seq)
-        logger.debug('OI map indexed: %s' % oimap_indexed)
+        self._report(['OI map indexed:', \
+                ['%d: %s' % (i, oi) for i, oi in enumerate(oimap_indexed)]])
         self._oimap = oimap_indexed
+
+        self._report_levelup()
 
     def _build_task_seq(self, graph):
         task_seq = [(Executor.__INPUT__, None)]

@@ -20,7 +20,7 @@ class FooML(object):
     __NULL = '_'
 
     def __init__(self):
-        self._reporter = report.TxtReporter()
+        self._reporter = report.SeqReporter()
         self._err = sys.stderr
         self._ds = {}
         #self._comp = comp.Serial()
@@ -28,6 +28,9 @@ class FooML(object):
         self._exec = executor.Executor(self._reporter)
         self._target = None
         self._outputs = []
+
+    def add_reporter(self, reporter):
+        self._reporter.add_reporter(reporter)
 
     def use_data(self, data):
         name = data
@@ -144,6 +147,8 @@ class FooML(object):
 
 def __test1():
     foo = FooML()
+    foo.add_reporter(report.LogReporter())
+    foo.add_reporter(report.MdReporter('report.md'))
     foo.use_data('iris')
     #foo.add_cutter('adapt', input='iris', output='cutted')
     #foo.add_fsel('Kbest', input='cutted', output='x')
