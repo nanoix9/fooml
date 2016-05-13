@@ -27,7 +27,8 @@ def get_config(package, name):
 
 
 __default_config = {
-        'binclass': (misc.TargTransComp, 'fooml.proc', 'binclass')
+        'binclass': (misc.TargTransComp, 'fooml.proc', 'binclass'),
+        'decide': (misc.ScoreComp, 'fooml.proc', 'decide'),
         }
 
 __sklearn_config = {

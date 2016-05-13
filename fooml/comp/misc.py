@@ -54,6 +54,11 @@ class TargTransComp(DsTransComp):
     def __init__(self, fun_with_arg):
         super(TargTransComp, self).__init__(fun_with_arg, 'y')
 
+class ScoreComp(DsTransComp):
+
+    def __init__(self, fun_with_arg):
+        super(ScoreComp, self).__init__(fun_with_arg, 'score')
+
 
 def main():
     return

@@ -9,6 +9,8 @@ def binclass(y, pos=lambda x: x > 0):
     return np.array([1 if pos(x) else 0 for x in y])
     #return np.apply_along_axis(pos, 0, y)
 
+def decide(y, thresh=0.0):
+    return np.array([1 if x > thresh else 0 for x in y])
 
 def test_binclass():
     a = np.arange(5)

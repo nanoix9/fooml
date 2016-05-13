@@ -20,6 +20,7 @@ class Executor(object):
 
     __INPUT__ = '__INPUT__'
     __OUTPUT__ = '__OUTPUT__'
+    __NULL__ = '_'
 
     def __init__(self, reporter):
         self._reporter = reporter
@@ -96,8 +97,8 @@ class Executor(object):
         while stack:
             curr_node = stack.pop()
             logger.debug('visits node "%s"' % (curr_node))
-            if curr_node in visited:
-                raise ValueError('Graph has cycle(s) in it' % graph.name)
+            if curr_node in visited and curr_node != Executor.__NULL__:
+                raise ValueError('node "%s" has already been visited' % curr_node)
             visited.add(curr_node)
             for f, t, comp_name, acomp in graph._edges_with_attr(curr_node, attr=('name', 'comp')):
                 logger.debug('+ checking edge: %s -(%s)-> %s' % (f, comp_name, t)) #, acomp)

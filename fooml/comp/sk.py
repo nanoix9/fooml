@@ -5,6 +5,7 @@ import sys
 import comp
 from fooml import dataset
 from fooml.dt import slist
+from fooml import util
 
 class SkComp(comp.Comp):
 

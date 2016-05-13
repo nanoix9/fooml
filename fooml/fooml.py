@@ -61,7 +61,7 @@ class FooML(object):
         self.add_comp(name, clf, inp, out)
         return self
 
-    def add_ds_trans(self, name, acomp, input, output):
+    def add_trans(self, name, acomp, input, output):
         self.add_comp_with_creator(name, acomp, input, output, factory.create_trans)
         return self
 
@@ -152,14 +152,15 @@ def __test1():
     foo.use_data('iris')
     #foo.add_cutter('adapt', input='iris', output='cutted')
     #foo.add_fsel('Kbest', input='cutted', output='x')
-    foo.add_ds_trans('binclass', 'binclass', input='iris', output='iris.2')
+    foo.add_trans('binclass', 'binclass', input='iris', output='iris.2')
     foo.add_classifier('lr', 'LR', input='iris.2', output='y.lr')
     #foo.add_classifier('lr', 'LR', input='iris', output='y.lr')
     #foo.add_classifier('RandomForest', input='x')
     #foo.cross_validate('K', k=4)
     foo.evaluate('AUC', pred=['y.lr'])
-    #foo.evaluate('report', pred=['y.lr'])
-    foo.save_output('y.lr')
+    foo.add_trans('decide', 'decide', input='y.lr', output='y.lr.c')
+    foo.evaluate('report', pred='y.lr.c')
+    foo.save_output(['y.lr', 'y.lr.c'])
     foo.run()
 
 def main():
