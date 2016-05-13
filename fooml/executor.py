@@ -239,13 +239,16 @@ class Executor(object):
 
         logger.info('build output -> input mapping ...')
         oimap = self._build_oimap(graph)
-        self._report(['OI mapping:', \
-                ['%s: %s' % (k, v) for k, v in oimap.iteritems()]])
 
         logger.info('build task sequence ...')
         task_seq = self._build_task_seq(graph)
         self._task_seq = task_seq
         self._report('task sequence:\n%s' % util.indent(self._str_task_seq(), 8))
+
+        self._report(['OI mapping:', \
+                ['%d. %s: %s' % (i, k, oimap[k]) \
+                    for i, (k, _) in enumerate(task_seq) \
+                    if k in oimap]])
 
         logger.info('replace component names with task index')
         oimap_indexed = self._indexing_comp(oimap, task_seq)

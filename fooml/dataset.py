@@ -10,9 +10,12 @@ import collections as c
 
 ds_train_test_xy_t = c.namedtuple('ds_train_test_xy_t', 'train, test')
 
-class dsxy(object):
+class dataset(object):
+    pass
 
-    def __init__(self, X, y):
+class dsxy(dataset):
+
+    def __init__(self, X=None, y=None):
         self.X = X
         self.y = y
 
@@ -20,9 +23,9 @@ class dsxy(object):
         yield self.X
         yield self.y
 
-class dssy(object):
+class dssy(dataset):
 
-    def __init__(self, score, y):
+    def __init__(self, score=None, y=None):
         self.score = score
         self.y = y
 
@@ -30,13 +33,13 @@ class dssy(object):
         yield self.score
         yield self.y
 
-class desc(object):
+class desc(dataset):
 
-    def __init__(self, desc):
-        self.cnt = desc
+    def __init__(self, desc=None):
+        self.desc = desc
 
     def __repr__(self):
-        return str(self.cnt)
+        return str(self.desc)
 
 class Dataset(object):
 

@@ -34,6 +34,7 @@ __sklearn_config = {
         'LR': (sk.Clf, 'linear_model', 'LogisticRegression'),
 
         'AUC': (sk.Eva, 'metrics', 'roc_auc_score'),
+        'report': (sk.Eva, 'metrics', 'classification_report'),
         }
 
 __config = {

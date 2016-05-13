@@ -107,7 +107,7 @@ class FooML(object):
         out = self._exec.run_train(self._ds, data_keyed=True)
 
         self._report('Run Testing ...')
-        ds = { k: v.X for k, v in self._ds.iteritems() }
+        ds = { k: dataset.dsxy(v.X, None) for k, v in self._ds.iteritems() }
         out = self._exec.run_test(ds, data_keyed=True)
         print 'final output:\n', out
 
@@ -154,9 +154,11 @@ def __test1():
     #foo.add_fsel('Kbest', input='cutted', output='x')
     foo.add_ds_trans('binclass', 'binclass', input='iris', output='iris.2')
     foo.add_classifier('lr', 'LR', input='iris.2', output='y.lr')
+    #foo.add_classifier('lr', 'LR', input='iris', output='y.lr')
     #foo.add_classifier('RandomForest', input='x')
     #foo.cross_validate('K', k=4)
     foo.evaluate('AUC', pred=['y.lr'])
+    #foo.evaluate('report', pred=['y.lr'])
     foo.save_output('y.lr')
     foo.run()
 

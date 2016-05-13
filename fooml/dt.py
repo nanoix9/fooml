@@ -77,6 +77,10 @@ class slist(object):
             yield tuple((None, obj) + args)
 
     @staticmethod
+    def iter(obj):
+        return iter_multi(obj)
+
+    @staticmethod
     def iter_multi(obj, *args, **kwds):
         #print 'iter_multi args:', obj, args
         strict = kwds.get('strict', False)
@@ -87,6 +91,11 @@ class slist(object):
                 yield stuple.norm([o] + [a[i] for a in args])
         else:
             yield stuple.norm((obj,) + args)
+
+    @staticmethod
+    def contains(obj, elem):
+        return (isinstance(obj, (list, tuple)) and elem in obj) \
+                or obj == elem
 
     @staticmethod
     def map(func, obj):

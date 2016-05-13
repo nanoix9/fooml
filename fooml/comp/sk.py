@@ -32,22 +32,27 @@ class Clf(SkComp):
         X, y = data
         self._obj.fit(X, y)
 
-    def trans(self, X):
-        score = self._obj.predict_proba(X)
+    def trans(self, ds):
+        X, y = ds
+        if hasattr(self._obj, 'decision_function'):
+            score = self._obj.decision_function(X)
+        else:
+            score = self._obj.predict_proba(X)
+        #print '>>>>>', score
         #print '>>>>>', self._obj.classes_
         #sys.exit()
         # if it is a binary classification problem, return a 1-D array
         # of probablities of class 1
-        if score.shape[1] == 2:
-            score = score[:,1]
-            #print score
+        #if score.shape[1] == 2:
+        #    score = score[:,1]
+        #    #print score
         #sys.exit()
         return score
 
     def fit_trans(self, data):
         X, y = data
         self.fit(data)
-        score = self.trans(X)
+        score = self.trans(data)
         return dataset.dssy(score, y)
 
 class Eva(SkComp):
@@ -61,7 +66,7 @@ class Eva(SkComp):
     def fit(self, data):
         pass
 
-    def trans(self, X):
+    def trans(self, ds):
         return None
 
     def fit_trans(self, data):
@@ -70,7 +75,11 @@ class Eva(SkComp):
             score, y = d
             eva = self._obj(y, score, *self.args, **self.opt)
             eva_list.append(eva)
-        return dataset.desc('scores: ' + str(eva))
+        eva_str = str(eva)
+        if '\n' not in eva_str:
+            return dataset.desc('scores: ' + eva_str)
+        else:
+            return dataset.desc('scores:\n' + util.indent(eva_str))
 
 
 def main():

@@ -2,6 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import inspect
+
+def getmembers(obj, pre_exclude=['__']):
+    return [a for a in inspect.getmembers(obj, \
+                lambda a: not inspect.isroutine(a)) \
+            if all([not a[0].startswith(p) for p in pre_exclude])]
 
 ########### for string ##########
 def indent(s, ind=2, prefix=' '):
@@ -62,8 +68,18 @@ def test_dict():
     print key_or_keys(dict(a=9))
     print key_or_keys(dict(a=1, b=2))
 
+def test_getmem():
+    class _A(object):
+        s = 100
+        def __init__(self):
+            self.a = 'aa'
+            self.b = 100
+
+    print getmembers(_A())
+
 def main():
-    test_dict()
+    #test_dict()
+    test_getmem()
     return
 
 if __name__ == '__main__':

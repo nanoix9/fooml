@@ -7,9 +7,7 @@ import pandas as pd
 import dataset
 
 def summary(data):
-    if data is None:
-        desc = '  data is NONE'
-    elif isinstance(data, dataset.dsxy):
+    if isinstance(data, dataset.dsxy):
         xdesc = _summary(data.X)
         ydesc = _summary(data.y)
         desc = ['summary of target y:',
@@ -69,6 +67,9 @@ def desc_cate_series(series, num=5):
     return ret
 
 def _summary(data):
+    if data is None:
+        return '  data is NONE'
+
     if isinstance(data, pd.DataFrame):
         df = data
     elif isinstance(data, np.ndarray):

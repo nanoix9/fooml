@@ -95,11 +95,13 @@ class LogReporter(Reporter):
         logging.currentframe = __cf
 
 
+# hard to make markdown format, so just make txt reports
 class MdReporter(Reporter):
 
     __block_marks = {
-            1: ('', '\n = = = \n'),
-            2: ('', '\n - - - \n'),
+            #1: ('', '\n = = = \n'),
+            #2: ('', '\n - - - \n'),
+
             #1: ('======', ''),
             #2: ('------', ''),
             #3: ('###', ),
