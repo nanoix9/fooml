@@ -59,6 +59,17 @@ class ScoreComp(DsTransComp):
     def __init__(self, fun_with_arg):
         super(ScoreComp, self).__init__(fun_with_arg, 'score')
 
+class DecideComp(DsTransComp):
+
+    def __init__(self, fun_with_arg):
+        super(DecideComp, self).__init__(fun_with_arg, 'score')
+
+    def trans(self, data):
+        if not isinstance(data, dataset.dssy):
+            raise ValueError('data should be fooml.dataset.dssy type')
+        cls = self._call_func(data.score)
+        return dataset.dscy(cls, data.y)
+
 
 def main():
     return

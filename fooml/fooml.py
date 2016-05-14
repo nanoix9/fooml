@@ -32,9 +32,9 @@ class FooML(object):
     def add_reporter(self, reporter):
         self._reporter.add_reporter(reporter)
 
-    def use_data(self, data):
+    def use_data(self, data, **kwds):
         name = data
-        ds = dataset.load_data(data)
+        ds = dataset.load_data(data, **kwds)
         self.add_data(ds, name=name)
 
     def add_data(self, data, test=None, name='data'):
@@ -53,9 +53,9 @@ class FooML(object):
         self._comp.add_comp(name, acomp, inp, out)
         return self
 
-    def add_comp_with_creator(self, name, acomp, inp, out, creator=None):
+    def add_comp_with_creator(self, name, acomp, inp, out, creator=None, **opt):
         if isinstance(acomp, basestring):
-            clf = creator(acomp)
+            clf = creator(acomp, **opt)
         else:
             clf = acomp
         self.add_comp(name, clf, inp, out)
@@ -65,8 +65,8 @@ class FooML(object):
         self.add_comp_with_creator(name, acomp, input, output, factory.create_trans)
         return self
 
-    def add_classifier(self, name, acomp, input, output=__NULL):
-        self.add_comp_with_creator(name, acomp, input, output, factory.create_classifier)
+    def add_classifier(self, name, acomp, input, output=__NULL, proba=None):
+        self.add_comp_with_creator(name, acomp, input, output, factory.create_classifier, proba=proba)
         return self
 
     def evaluate(self, indic, pred, acomp=None):
@@ -89,7 +89,7 @@ class FooML(object):
         self._report('Fooml description:')
         self._report('Graph of computing components: %s' % self._comp)
 
-    def run(self):
+    def run(self, test=True):
         self._comp.set_input(util.key_or_keys(self._ds))
         #self._comp.set_output(self._outputs + [FooML.__NULL])
         if self._outputs:
@@ -106,10 +106,14 @@ class FooML(object):
         self._report('Training ...')
         out = self._exec.run_train(self._ds, data_keyed=True)
 
-        self._report('Run Testing ...')
-        ds = { k: dataset.dsxy(v.X, None) for k, v in self._ds.iteritems() }
-        out = self._exec.run_test(ds, data_keyed=True)
+        if test:
+            self._report('Run Testing ...')
+            ds = { k: dataset.dsxy(v.X, None) for k, v in self._ds.iteritems() }
+            out = self._exec.run_test(ds, data_keyed=True)
         print 'final output:\n', out
+
+    def run_train(self):
+        return self.run(test=False)
 
     def desc_data(self):
         self._report('Quick Summary of Original Data')
@@ -149,19 +153,32 @@ def __test1():
     foo = FooML()
     foo.add_reporter(report.LogReporter())
     foo.add_reporter(report.MdReporter('report.md'))
-    foo.use_data('iris')
+    data_name = 'digits'
+    data_name = 'iris'
+    foo.use_data(data_name, flatten=True)
+
     #foo.add_cutter('adapt', input='iris', output='cutted')
     #foo.add_fsel('Kbest', input='cutted', output='x')
-    foo.add_trans('binclass', 'binclass', input='iris', output='iris.2')
-    foo.add_classifier('lr', 'LR', input='iris.2', output='y.lr')
+    iris_2 = 'iris.2'
+    foo.add_trans('binclass', 'binclass', input=data_name, output=iris_2)
+    #iris_2 = data_name
+
+    #foo.add_classifier('lr', 'LR', input=iris_2, output='y.lr.c')
+    #foo.add_classifier('lr', 'LR', input=iris_2, output='y.lr', proba='only')
+    foo.add_classifier('lr', 'LR', input=iris_2, output=['y.lr.c', 'y.lr'], proba='with')
+
+    #foo.add_classifier('clf', 'DecisionTree', input=iris_2, output='y.lr.c')
     #foo.add_classifier('lr', 'LR', input='iris', output='y.lr')
     #foo.add_classifier('RandomForest', input='x')
+
     #foo.cross_validate('K', k=4)
-    foo.evaluate('AUC', pred=['y.lr'])
-    foo.add_trans('decide', 'decide', input='y.lr', output='y.lr.c')
+    foo.evaluate('AUC', pred='y.lr')
+
+    #foo.add_trans('decide', 'decide', input='y.lr', output='y.lr.c')
     foo.evaluate('report', pred='y.lr.c')
-    foo.save_output(['y.lr', 'y.lr.c'])
-    foo.run()
+    #foo.save_output(['y.lr', 'y.lr.c'])
+    #foo.save_output('y.lr')
+    foo.run_train()
 
 def main():
     __test1()

@@ -173,17 +173,22 @@ class Executor(object):
         #sys.exit()
         #logger.debug('buffer before emit: %s' % buff)
         for dname, d_obj in data_dict.iteritems():
+            emitted = False
             if dname in out_buff:
-                if out_buff[dname] is not None:
+                if dname != Executor.__NULL__ and out_buff[dname] is not None:
                     raise ValueError('output of "%s" already got a value' % dname)
                 logger.debug('emit to output "%s": %s' % (dname, d_obj))
                 out_buff[dname] = d_obj;
+                emitted = True
             for f, t, comp_name in graph._edges_with_attr(nbunch=[dname]):
                 logger.debug('emiting data %s -> %s.%s' % (dname, comp_name, f))
                 if f not in buff[comp_name]:
                     raise ValueError('Component "%s" does not have a input named "%s"!' \
                         % (comp_name, f))
                 buff[comp_name][f] = d_obj
+                emitted = True
+            if not emitted:
+                logger.warning('data "%s" is not emitted to any component' % dname)
         #logger.debug('buffer after emit: %s' % buff)
 
     def _graph_comp_to_input(self, graph):

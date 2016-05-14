@@ -23,6 +23,14 @@ def summary(data):
                 'summary of true value:',
                 ydesc,
                 ]
+    elif isinstance(data, dataset.dscy):
+        xdesc = _summary(data.cls)
+        ydesc = _summary(data.y)
+        desc = ['summary of predicted class:',
+                xdesc,
+                'summary of true class:',
+                ydesc,
+                ]
     elif isinstance(data, dataset.desc):
         desc = '  ' + str(data)
     elif _is_small_data(data):

@@ -28,11 +28,12 @@ def get_config(package, name):
 
 __default_config = {
         'binclass': (misc.TargTransComp, 'fooml.proc', 'binclass'),
-        'decide': (misc.ScoreComp, 'fooml.proc', 'decide'),
+        'decide': (misc.DecideComp, 'fooml.proc', 'decide'),
         }
 
 __sklearn_config = {
         'LR': (sk.Clf, 'linear_model', 'LogisticRegression'),
+        'DecisionTree': (sk.Clf, 'tree', 'DecisionTreeClassifier'),
 
         'AUC': (sk.Eva, 'metrics', 'roc_auc_score'),
         'report': (sk.Eva, 'metrics', 'classification_report'),

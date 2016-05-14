@@ -9,27 +9,27 @@ import inspect
 from log import logger
 
 
-def create_classifier(name, package='sklearn', args=[], opt={}):
-    return create_comp(package, name, args, opt)
+def create_classifier(name, package='sklearn', proba=None, args=[], opt={}):
+    return create_comp(package, name, args, opt, {'proba': proba})
 
 def create_evaluator(name, package='sklearn', args=[], opt={}):
-    return create_comp(package, name, args, opt)
+    return create_comp(package, name, args, opt, {})
 
 def create_trans(name, package=comp.conf.DEFAULT, args=[], opt={}):
-    return create_comp(package, name, args, opt)
+    return create_comp(package, name, args, opt, {})
 
-def create_comp(package, name, args, opt):
+def create_comp(package, name, args, opt, comp_opt):
     try:
         conf = comp.conf.get_config(package, name)
         obj = create_obj(conf.module, conf.clazz, args, opt)
     except KeyError:
         obj = create_obj(package, name, args, opt)
-    acomp = conf.comp_class(obj)
+    acomp = conf.comp_class(obj, **comp_opt)
     return acomp
 
 def create_obj(package, name, args=[], opt={}):
     #obj = create_or_default(package, name, args, opt)
-    logger.info('create component "%s(%s)" with "args=%s, opt=%s"' % \
+    logger.info('create object "%s(%s)" with "args=%s, opt=%s"' % \
             (name, package, str(args), str(opt)))
     obj = create_from_str(package, name, args, opt)
     return obj
