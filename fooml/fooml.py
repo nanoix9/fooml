@@ -29,6 +29,8 @@ class FooML(object):
         self._target = None
         self._outputs = []
 
+        self.add_reporter(report.LogReporter())
+
     def add_reporter(self, reporter):
         self._reporter.add_reporter(reporter)
 
@@ -68,6 +70,12 @@ class FooML(object):
     def add_classifier(self, name, acomp, input, output=__NULL, proba=None):
         self.add_comp_with_creator(name, acomp, input, output, factory.create_classifier, proba=proba)
         return self
+
+    def add_nn(self, name, nn, input, output=__NULL):
+        ''' Add nerual networks '''
+
+        acomp = factory.obj2comp(nn)
+        self.add_comp(name, acomp, inp, out)
 
     def evaluate(self, indic, pred, acomp=None):
         if acomp is not None:
@@ -151,7 +159,6 @@ class FooML(object):
 
 def __test1():
     foo = FooML()
-    foo.add_reporter(report.LogReporter())
     foo.add_reporter(report.MdReporter('report.md'))
     data_name = 'digits'
     data_name = 'iris'

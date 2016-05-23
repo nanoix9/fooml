@@ -3,15 +3,20 @@
 
 import sys
 import fooml
+from fooml.exam import nn
 
 
 def test():
     fooml.main()
 
+def testnn():
+    nn.main()
+
 def main():
     #foo = fooml.FooML()
     #foo.run()
-    test()
+    #test()
+    testnn()
     return
 
 

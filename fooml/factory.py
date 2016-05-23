@@ -18,6 +18,9 @@ def create_evaluator(name, package='sklearn', args=[], opt={}):
 def create_trans(name, package=comp.conf.DEFAULT, args=[], opt={}):
     return create_comp(package, name, args, opt, {})
 
+def obj2comp(obj):
+    return comp.Comp(obj)
+
 def create_comp(package, name, args, opt, comp_opt):
     try:
         conf = comp.conf.get_config(package, name)

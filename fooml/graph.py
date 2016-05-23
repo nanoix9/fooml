@@ -21,6 +21,8 @@ class CompGraph(object):
     def __init__(self, name, inp=None, out=None):
         self.name = name
         self._graph = nx.DiGraph()
+        self._inp = None
+        self._out = None
         self.set_input(inp)
         self.set_output(out)
         self._comps = {}
