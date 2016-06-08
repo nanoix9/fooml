@@ -57,6 +57,16 @@ class Comp(object):
         return desc
         #return '%s(obj=%s)' % (self.__class__.__name__, self._obj)
 
+    def fit(self, data):
+        raise NotImplementedError()
+
+    def trans(self, data):
+        raise NotImplementedError()
+
+    def fit_trans(self, data):
+        self.fit(data)
+        return self.trans(data)
+
 class LambdaComp(Comp):
 
     def __init__(self, obj, fit, trans, fit_trans=None):

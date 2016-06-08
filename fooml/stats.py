@@ -8,28 +8,36 @@ import dataset
 
 def summary(data):
     if isinstance(data, dataset.dsxy):
-        xdesc = _summary(data.X)
-        ydesc = _summary(data.y)
+        xdesc = summary(data.X)
+        ydesc = summary(data.y)
         desc = ['summary of target y:',
                 ydesc,
                 'summary of feature X:',
                 xdesc,
                 ]
     elif isinstance(data, dataset.dssy):
-        xdesc = _summary(data.score)
-        ydesc = _summary(data.y)
+        xdesc = summary(data.score)
+        ydesc = summary(data.y)
         desc = ['summary of score:',
                 xdesc,
                 'summary of true value:',
                 ydesc,
                 ]
     elif isinstance(data, dataset.dscy):
-        xdesc = _summary(data.cls)
-        ydesc = _summary(data.y)
+        xdesc = summary(data.cls)
+        ydesc = summary(data.y)
         desc = ['summary of predicted class:',
                 xdesc,
                 'summary of true class:',
                 ydesc,
+                ]
+    elif isinstance(data, dataset.dstv):
+        tdesc = summary(data.train)
+        vdesc = summary(data.valid)
+        desc = ['summary of train set:',
+                tdesc,
+                'summary of validation set:',
+                vdesc,
                 ]
     elif isinstance(data, dataset.desc):
         desc = '  ' + str(data)
@@ -81,7 +89,13 @@ def _summary(data):
     if isinstance(data, pd.DataFrame):
         df = data
     elif isinstance(data, np.ndarray):
-        df = pd.DataFrame(data)
+        if len(data.shape) <= 2:
+            df = pd.DataFrame(data)
+        else:
+            #raise ValueError('data with more than 2 dimension is not supported yet')
+            ret = ['size: %s' % str(data.shape), \
+                    ]
+            return ret
     else:
         raise ValueError('unknown data type: %s' % type(data))
 

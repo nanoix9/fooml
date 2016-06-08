@@ -18,8 +18,13 @@ def create_evaluator(name, package='sklearn', args=[], opt={}):
 def create_trans(name, package=comp.conf.DEFAULT, args=[], opt={}):
     return create_comp(package, name, args, opt, {})
 
-def obj2comp(obj):
-    return comp.Comp(obj)
+def obj2comp(obj, **opt):
+    assert(obj is not None)
+    comp_class = comp.conf.get_comp_class(obj.__class__.__module__, obj.__class__.__name__)
+    if comp_class is None:
+        return comp.Comp(obj, **opt)
+    else:
+        return comp_class(obj, **opt)
 
 def create_comp(package, name, args, opt, comp_opt):
     try:

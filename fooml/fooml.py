@@ -22,7 +22,8 @@ class FooML(object):
     def __init__(self):
         self._reporter = report.SeqReporter()
         self._err = sys.stderr
-        self._ds = {}
+        self._ds_train = {}
+        self._ds_test = {}
         #self._comp = comp.Serial()
         self._comp = graph.CompGraph('main')
         self._exec = executor.Executor(self._reporter)
@@ -39,6 +40,10 @@ class FooML(object):
         ds = dataset.load_data(data, **kwds)
         self.add_data(ds, name=name)
 
+    def load_image(self, name, image_path, target_path, sample_id, target=None):
+        ds = dataset.load_image(image_path, target_path, sample_id, target)
+        self.add_data(ds, name=name)
+
     def add_data(self, data, test=None, name='data'):
         if isinstance(data, (str, unicode)):
             name = data
@@ -46,10 +51,18 @@ class FooML(object):
         else:
             ds = data
 
-        if name in self._ds:
+        if name in self._ds_train:
             self._report('Warning: Dataset with name "%s" already exists. Will be replaced' % name)
-        self._ds[name] = ds
-        #print self._ds
+
+        if isinstance(ds, tuple):
+            self._ds_train[name] = ds[0]
+            self._ds_test[name] = ds[1]
+        else:
+            self._ds_train[name] = ds
+        #print self._ds_train
+
+    def get_train_data(self, name):
+        return self._ds_train[name]
 
     def add_comp(self, name, acomp, inp, out):
         self._comp.add_comp(name, acomp, inp, out)
@@ -71,11 +84,11 @@ class FooML(object):
         self.add_comp_with_creator(name, acomp, input, output, factory.create_classifier, proba=proba)
         return self
 
-    def add_nn(self, name, nn, input, output=__NULL):
+    def add_nn(self, name, nn, input, output=__NULL, train_opt={}):
         ''' Add nerual networks '''
 
-        acomp = factory.obj2comp(nn)
-        self.add_comp(name, acomp, inp, out)
+        acomp = factory.obj2comp(nn, train_opt=train_opt)
+        self.add_comp(name, acomp, input, output)
 
     def evaluate(self, indic, pred, acomp=None):
         if acomp is not None:
@@ -97,42 +110,54 @@ class FooML(object):
         self._report('Fooml description:')
         self._report('Graph of computing components: %s' % self._comp)
 
-    def run(self, test=True):
-        self._comp.set_input(util.key_or_keys(self._ds))
+    def compile(self):
+        self._comp.set_input(util.key_or_keys(self._ds_train))
         #self._comp.set_output(self._outputs + [FooML.__NULL])
         if self._outputs:
             self._comp.set_output(self._outputs)
         else:
             self._comp.set_output(FooML.__NULL)
 
-        self.show()
-        self.desc_data()
-
         self._report('Compiling graph ...')
         self._exec.compile_graph(self._comp)
 
+    def run(self, test=True):
+        self.show()
+        self.desc_data()
+
+        #self.compile()
+
         self._report('Training ...')
-        out = self._exec.run_train(self._ds, data_keyed=True)
+        out = self._exec.run_train(self._ds_train, data_keyed=True)
 
         if test:
             self._report('Run Testing ...')
-            ds = { k: dataset.dsxy(v.X, None) for k, v in self._ds.iteritems() }
+            ds = self._get_test_data()
             out = self._exec.run_test(ds, data_keyed=True)
         print 'final output:\n', out
 
     def run_train(self):
         return self.run(test=False)
 
+    def _get_test_data(self):
+        ds = {}
+        for k, v in self._ds_train.iteritems():
+            if self._ds_test.get(k, None) is not None:
+                ds[k] = self._ds_test[k]
+            else:
+                ds[k] = dataset.dsxy(v.X, None)
+        return ds
+
     def desc_data(self):
         self._report('Quick Summary of Original Data')
         self._report_leveldown()
-        for name, ds in self._ds.iteritems():
+        for name, ds in self._ds_train.iteritems():
             self._report('Summary of data set "%s":' % name)
             self._report_leveldown()
-            #self._report('train set of %s:' % name)
+            self._report('train set of %s:' % name)
             self._desc(ds)
-            #self._report('test set of %s:' % name)
-            #self._desc(test)
+            self._report('test set of %s:' % name)
+            self._desc(self._ds_test.get(name, None))
             self._report_levelup()
         self._report_levelup()
 
@@ -142,7 +167,7 @@ class FooML(object):
 
     def _desc(self, data):
         if data is None:
-            self._report('it\'s NULL')
+            self._report('dataset is NULL')
             return
         desc = stats.summary(data)
         self._report(desc)
@@ -185,6 +210,8 @@ def __test1():
     foo.evaluate('report', pred='y.lr.c')
     #foo.save_output(['y.lr', 'y.lr.c'])
     #foo.save_output('y.lr')
+
+    foo.compile()
     foo.run_train()
 
 def main():
