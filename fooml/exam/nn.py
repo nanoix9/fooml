@@ -11,9 +11,10 @@ from keras.layers import Convolution2D, MaxPooling2D
 from keras.utils import np_utils
 
 np.random.seed(1337)  # for reproducibility
-batch_size = 128
+batch_size = 256
 nb_classes = 10
-nb_epoch = 12
+#nb_epoch = 12
+nb_epoch = 1
 
 def create_nn_v1(ds):
 

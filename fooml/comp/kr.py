@@ -27,11 +27,15 @@ class KerasComp(comp.Comp):
 
     def trans(self, data):
         X, y = data
-        return self._obj.transform(data)
+        return dataset.dssy(self._obj.predict(X), y)
 
     def fit_trans(self, data):
+        if isinstance(data, dataset.dstv):
+            ds_train, ds_valid = data
+        else:
+            ds_train = data
         self.fit(data)
-        return self.trans(data)
+        return self.trans(ds_train)
 
         #print X, y
         #self._obj.fit_transform(X, y)

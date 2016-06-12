@@ -136,7 +136,7 @@ def load_toy(name, **kwds):
         #print(X_test.shape[0], 'test samples')
         y_train = np_utils.to_categorical(y_train, nb_classes)
         y_test = np_utils.to_categorical(y_test, nb_classes)
-        return dstv(dsxy(X_train, y_train), dsxy(X_test, y_test))
+        return dstv(dsxy(X_train, y_train), dsxy(X_test, y_test)), dsxy(X_test, y_test)
 
 def _test_csv():
     path = 'test/min.csv'
