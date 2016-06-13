@@ -15,8 +15,8 @@ def testnn():
 def main():
     #foo = fooml.FooML()
     #foo.run()
-    #test()
-    testnn()
+    test()
+    #testnn()
     return
 
 

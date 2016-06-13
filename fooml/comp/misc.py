@@ -21,16 +21,15 @@ class DsTransComp(FunComp):
         if not isinstance(data, dataset.dataset):
             return data
 
-        dtran = clazz = data.__class__()
-        for name, value in util.getmembers(data):
-            #print '>>>', name, value
+        def _foo(name, value):
             if value is None:
                 out = None
             elif self._is_exec(name):
                 out = self._call_func(value)
             else:
                 out = value
-            setattr(dtran, name, out)
+            return out
+        dtran = dataset.map(_foo, data)
         return dtran
 
     #def fit_trans(self, data):

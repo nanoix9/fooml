@@ -15,8 +15,16 @@ def create_classifier(name, package='sklearn', proba=None, args=[], opt={}):
 def create_evaluator(name, package='sklearn', args=[], opt={}):
     return create_comp(package, name, args, opt, {})
 
-def create_trans(name, package=comp.conf.DEFAULT, args=[], opt={}):
+#def create_trans(name, package=comp.conf.DEFAULT, args=[], opt={}):
+def create_trans(name, package=comp.conf.ANY, args=[], opt={}):
     return create_comp(package, name, args, opt, {})
+
+def create_inv_trans(acomp):
+    assert(acomp is not None)
+    comp_class = comp.conf.get_inv_comp_class(acomp.__class__.__module__, acomp.__class__.__name__)
+    logger.info('create inverse component "%s.%s"' % \
+            (comp_class.__module__, comp_class.__name__))
+    return comp_class(acomp)
 
 def obj2comp(obj, **opt):
     assert(obj is not None)
@@ -32,6 +40,8 @@ def create_comp(package, name, args, opt, comp_opt):
         obj = create_obj(conf.module, conf.clazz, args, opt)
     except KeyError:
         obj = create_obj(package, name, args, opt)
+    logger.info('create component "%s.%s" with "opt=%s"' % \
+            (conf.comp_class.__module__, conf.comp_class.__name__, comp_opt))
     acomp = conf.comp_class(obj, **comp_opt)
     return acomp
 

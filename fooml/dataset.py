@@ -2,10 +2,20 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import os
+import os.path
+import glob
 import sklearn.datasets as ds
 import collections as c
+import numpy as np
 import pandas as pd
 import util
+from log import logger
+
+try:
+    import cv2
+except ImportError:
+    logger.warning('load cv2 failed')
 
 #dsxy = c.namedtuple('dsxy', 'X, y')
 #dssy = c.namedtuple('dssy', 'score, y')
@@ -101,6 +111,47 @@ def load_csv(path, target, feature=None, dlm=','):
 def load_image(image_path, target_path, sample_id, target=None):
     return
 
+def _subdirs(path):
+    _, dirnames, _ = next(os.walk(path), (None, [], None))
+    #print path
+    #print [x for x in os.walk(path)]
+    return dirnames
+
+def _get_im_cv2(path, resize=None, color_type=1):
+    # Load as grayscale
+    if color_type == 1:
+        img = cv2.imread(path, 0)
+    elif color_type == 3:
+        img = cv2.imread(path)
+    # Reduce size
+    if resize:
+        img = cv2.resize(img, resize)
+    return img
+
+def load_image_grouped(image_path, resize=None, file_ext='jpg'):
+    X_train = []
+    y_train = []
+
+    logger.info('read images from path "%s"' % image_path)
+    for j in _subdirs(image_path):
+        path = os.path.join(image_path, str(j), '*.%s' % file_ext)
+        files = glob.glob(path)
+        logger.info('load folder {}: {} files'.format(j, len(files)))
+        for fl in files:
+            flbase = os.path.basename(fl)
+            img = _get_im_cv2(fl, resize, color_type=1)
+            X_train.append(img)
+            y_train.append(j)
+            #driver_id.append(driver_data[flbase])
+
+    #unique_drivers = sorted(list(set(driver_id)))
+    #print('Unique drivers: {}'.format(len(unique_drivers)))
+    #print(unique_drivers)
+    X_train = np.array(X_train)
+    y_train = np.array(y_train)
+
+    return dsxy(X_train, y_train)
+
 def load_toy(name, **kwds):
     name = name.lower()
     if name == 'iris':
@@ -137,6 +188,16 @@ def load_toy(name, **kwds):
         y_train = np_utils.to_categorical(y_train, nb_classes)
         y_test = np_utils.to_categorical(y_test, nb_classes)
         return dstv(dsxy(X_train, y_train), dsxy(X_test, y_test)), dsxy(X_test, y_test)
+
+def map(func, data):
+    if not isinstance(data, dataset):
+        raise TypeError('data set is not an instance of dataset')
+
+    dtran = clazz = data.__class__()
+    for name, value in util.getmembers(data):
+        #print '>>>', name, value
+        setattr(dtran, name, func(name, value))
+    return dtran
 
 def _test_csv():
     path = 'test/min.csv'

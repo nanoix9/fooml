@@ -53,6 +53,9 @@ class CompGraph(object):
                 for i in x:
                     yield x
         conn = [ (x, y) for x in inp for y in out]
+        for x, y in conn:
+            if self._graph.has_edge(x, y):
+                raise RuntimeError('already an edge between %d and %d' % (x, y))
         self._graph.add_edges_from(conn, **attr)
 
     def add_comp(self, name, acomp, inp, out):
@@ -65,6 +68,12 @@ class CompGraph(object):
         self._add_nodes(out_list)
         self._add_edges(inp_list, out_list, name=name, comp=acomp)
         return self
+
+    def get_comp_entry(self, name):
+        return self._comps[name]
+
+    def get_comp(self, name):
+        return self.get_comp_entry(name).comp
 
     def __str__(self):
         return '%s:\n  Input:  %s,\n  Output: %s,\n  Nodes:  %s,\n  Edges:  %s,\n  Components:\n%s' % \

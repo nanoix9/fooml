@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import os.path
 #import collections as c
 import wrap
 import dataset
@@ -40,8 +41,18 @@ class FooML(object):
         ds = dataset.load_data(data, **kwds)
         self.add_data(ds, name=name)
 
-    def load_image(self, name, image_path, target_path, sample_id, target=None):
-        ds = dataset.load_image(image_path, target_path, sample_id, target)
+    def load_image_grouped(self, name, path=None, train_path=None, test_path=None, **opt):
+        if path is not None:
+            train_path = os.path.join(path, 'train')
+            test_path = os.path.join(path, 'test')
+        #ds = dataset.load_image(image_path, target_path, sample_id, target)
+        ds_train = dataset.load_image_grouped(train_path, **opt)
+        if test_path is not None:
+            ds_test = dataset.load_image_grouped(test_path, **opt)
+            ds = (ds_train, ds_test)
+        else:
+            ds_test = None
+            ds = ds_train
         self.add_data(ds, name=name)
 
     def add_data(self, data, test=None, name='data'):
@@ -78,6 +89,12 @@ class FooML(object):
 
     def add_trans(self, name, acomp, input, output):
         self.add_comp_with_creator(name, acomp, input, output, factory.create_trans)
+        return self
+
+    def add_inv_trans(self, name, another, input, output):
+        acomp = self._comp.get_comp(another)
+        inv_comp = factory.create_inv_trans(acomp)
+        self.add_comp(name, inv_comp, input, output)
         return self
 
     def add_classifier(self, name, acomp, input, output=__NULL, proba=None):

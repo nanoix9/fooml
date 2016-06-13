@@ -25,6 +25,48 @@ class SkComp(comp.Comp):
         #print self._obj
         #return self._obj.fit_transform(X, y)
 
+class TargTrans(SkComp):
+
+    def __init__(self, obj):
+        super(TargTrans, self).__init__(obj)
+
+    def fit_trans(self, data):
+        return self._exec(data, self._obj.fit_transform)
+
+    def trans(self, data):
+        return self._exec(data, self._obj.transform)
+
+    def _exec(self, data, func):
+        if isinstance(data, dataset.dsxy):
+            return self.__exec_xy(data, func)
+        elif isinstance(data, dataset.dstv):
+            pass
+        else:
+            raise TypeError()
+
+    def _exec_xy(self, data, func):
+        X, y = data
+        if y is None:
+            out = None
+        else:
+            out = func(y)
+        dtran = dataset.dsxy(X, y)
+        return dtran
+
+class TargInvTrans(TargTrans):
+
+    def __init__(self, another):
+        super(TargInvTrans, self).__init__(another._obj)
+
+    def fit(self, data):
+        raise RuntimeError('TargInvTrans cannot be fitted')
+
+    def fit_trans(self, data):
+        return self.trans(data)
+
+    def trans(self, data):
+        return self._exec(data, self._obj.inverse_transform)
+
 class Clf(SkComp):
 
     def __init__(self, obj, proba=None):
