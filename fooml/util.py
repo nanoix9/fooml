@@ -17,6 +17,17 @@ def indent(s, ind=2, prefix=' '):
     return str_ind + s.replace('\n', '\n' + str_ind)
 
 ############ for dict ############
+def merge_dict_or_none(*dict_args):
+    '''
+    Given any number of dicts, shallow copy and merge into a new dict,
+    precedence goes to key value pairs in latter dicts.
+    '''
+    result = {}
+    for dictionary in dict_args:
+        if dictionary is not None:
+            result.update(dictionary)
+    return result
+
 def key_or_keys(d):
     k = d.keys()
     if len(k) == 0:

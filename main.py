@@ -3,13 +3,13 @@
 
 import sys
 import fooml
-from fooml.exam import nn
 
 
 def test():
     fooml.main()
 
 def testnn():
+    from fooml.exam import nn
     nn.main()
 
 def main():

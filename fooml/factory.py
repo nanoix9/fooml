@@ -6,6 +6,7 @@ import comp
 import comp.conf
 import importlib
 import inspect
+import util
 from log import logger
 
 
@@ -37,6 +38,7 @@ def obj2comp(obj, **opt):
 def create_comp(package, name, args, opt, comp_opt):
     try:
         conf = comp.conf.get_config(package, name)
+        opt = util.merge_dict_or_none(opt, conf.opt)
         obj = create_obj(conf.module, conf.clazz, args, opt)
     except KeyError:
         obj = create_obj(package, name, args, opt)
@@ -62,7 +64,11 @@ def create_or_default(package, name, args, opt):
 
 def create_from_str(module_name, clazz_name, args, opt):
     module = importlib.import_module(module_name)
-    clazz = getattr(module, clazz_name)
+    try:
+        clazz = getattr(module, clazz_name)
+    except:
+        logger.error('no class "%s" in module "%s"' % (clazz_name, module_name))
+        raise
     if inspect.isclass(clazz):
         obj = clazz(*args, **opt)
     elif hasattr(clazz, '__call__'):

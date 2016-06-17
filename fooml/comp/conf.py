@@ -11,10 +11,12 @@ ANY = '__any__'
 
 class ConfigEntry(object):
 
-    def __init__(self, comp_class, module, clazz):
+    def __init__(self, comp_class, module, clazz, arg=None, opt=None):
         self.comp_class = comp_class
         self.module = module
         self.clazz = clazz
+        self.arg = arg
+        self.opt = opt
 
 def get_config(package, name):
     if package == ANY:
@@ -31,12 +33,14 @@ def get_config(package, name):
     comp_class = conf[0]
     submodule = conf[1]
     clazz = conf[2]
+    arg = None if len(conf) < 4 else conf[3]
+    opt = None if len(conf) < 5 else conf[4]
 
     if package == DEFAULT:
         full_module = submodule
     else:
         full_module = package + '.' + submodule
-    return ConfigEntry(comp_class, full_module, clazz)
+    return ConfigEntry(comp_class, full_module, clazz, arg, opt)
 
 def get_comp_class(module, name):
     return __get_from_config(__comp_conf, module, name)
@@ -72,10 +76,14 @@ __sklearn_config = {
 
         'LR': (sk.Clf, 'linear_model', 'LogisticRegression'),
         'DecisionTree': (sk.Clf, 'tree', 'DecisionTreeClassifier'),
+        'random': (sk.Clf, 'dummy', 'DummyClassifier', None, dict(strategy='stratified')),
 
         'AUC': (sk.Eva, 'metrics', 'roc_auc_score'),
         'report': (sk.Eva, 'metrics', 'classification_report'),
         }
+
+#__keras_config = {
+#        'logloss': (kr.KerasComp
 
 __config = {
         'sklearn': __sklearn_config,

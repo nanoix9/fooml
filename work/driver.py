@@ -16,11 +16,18 @@ def main():
 
     data_name_labeled = 'y_indexed'
     foo.add_trans('le', 'labelencoder', input=data_name, output=data_name_labeled)
-    foo.add_inv_trans('invle', 'le', input=data_name_labeled, output='_')
+    pred = 'y_pred'
+    #foo.add_classifier('rand', 'random', input=data_name_labeled, output=pred)
+    #foo.evaluate('keras:logloss', input=pred)
+    pred = data_name_labeled
+
+    foo.add_inv_trans('invle', 'le', input=pred, output='_')
 
     foo.show()
     foo.desc_data()
     foo.compile()
+
+    foo.run_train()
 
     return
 

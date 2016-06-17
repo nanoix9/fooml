@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import numpy as np
 import comp
+import mixin
 from fooml import dataset
 from fooml.dt import slist
 from fooml import util
@@ -25,47 +27,33 @@ class SkComp(comp.Comp):
         #print self._obj
         #return self._obj.fit_transform(X, y)
 
-class TargTrans(SkComp):
+class TargTrans(mixin.TargTransMixin, SkComp):
 
     def __init__(self, obj):
         super(TargTrans, self).__init__(obj)
 
-    def fit_trans(self, data):
-        return self._exec(data, self._obj.fit_transform)
+    def _fit_func(self, y):
+        return self._obj.fit(y)
 
-    def trans(self, data):
-        return self._exec(data, self._obj.transform)
+    def _fit_trans_func(self, y):
+        return self._obj.fit_transform(y)
 
-    def _exec(self, data, func):
-        if isinstance(data, dataset.dsxy):
-            return self.__exec_xy(data, func)
-        elif isinstance(data, dataset.dstv):
-            pass
-        else:
-            raise TypeError()
+    def _trans_func(self, y):
+        return self._obj.transform(y)
 
-    def _exec_xy(self, data, func):
-        X, y = data
-        if y is None:
-            out = None
-        else:
-            out = func(y)
-        dtran = dataset.dsxy(X, y)
-        return dtran
-
-class TargInvTrans(TargTrans):
+class TargInvTrans(mixin.TargTransMixin, SkComp):
 
     def __init__(self, another):
         super(TargInvTrans, self).__init__(another._obj)
 
-    def fit(self, data):
-        raise RuntimeError('TargInvTrans cannot be fitted')
+    #def fit(self, y):
+    #    raise RuntimeError('TargInvTrans cannot be fitted')
 
-    def fit_trans(self, data):
-        return self.trans(data)
+    def _fit_trans_func(self, y):
+        return self._trans_func(y)
 
-    def trans(self, data):
-        return self._exec(data, self._obj.inverse_transform)
+    def _trans_func(self, y):
+        return self._obj.inverse_transform(y)
 
 class Clf(SkComp):
 
@@ -113,7 +101,7 @@ class Clf(SkComp):
         return score
 
 
-class Eva(SkComp):
+class Eva(mixin.EvaMixin, SkComp):
 
     def __init__(self, obj):
         func, args, opt = obj
@@ -121,23 +109,8 @@ class Eva(SkComp):
         self.args = args
         self.opt = opt
 
-    def fit(self, data):
-        pass
-
-    def trans(self, ds):
-        return None
-
-    def fit_trans(self, data):
-        eva_list = []
-        for d in slist.iter_multi(data, strict=True):
-            score, y = d
-            eva = self._obj(y, score, *self.args, **self.opt)
-            eva_list.append(eva)
-        eva_str = str(eva)
-        if '\n' not in eva_str:
-            return dataset.desc('scores: ' + eva_str)
-        else:
-            return dataset.desc('scores:\n' + util.indent(eva_str))
+    def _cal_func(self, y, score):
+        return self._obj(y, score, *self.args, **self.opt)
 
 
 def main():

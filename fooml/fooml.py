@@ -81,7 +81,11 @@ class FooML(object):
 
     def add_comp_with_creator(self, name, acomp, inp, out, creator=None, **opt):
         if isinstance(acomp, basestring):
-            clf = creator(acomp, **opt)
+            if ':' in acomp:
+                package, acomp_name = acomp.split(':')
+                clf = creator(acomp_name, package=package, **opt)
+            else:
+                clf = creator(acomp, **opt)
         else:
             clf = acomp
         self.add_comp(name, clf, inp, out)
@@ -107,13 +111,14 @@ class FooML(object):
         acomp = factory.obj2comp(nn, train_opt=train_opt)
         self.add_comp(name, acomp, input, output)
 
-    def evaluate(self, indic, pred, acomp=None):
+    def evaluate(self, indic, input, acomp=None):
         if acomp is not None:
-            self.add_comp(indic, acomp, pred, FooML.__NULL)
+            self.add_comp(indic, acomp, input, FooML.__NULL)
         else:
             for i in slist.iter_multi(indic):
-                eva = factory.create_evaluator(i)
-                self.add_comp(i, eva, pred, FooML.__NULL)
+                #eva = factory.create_evaluator(i)
+                #self.add_comp(i, eva, input, FooML.__NULL)
+                self.add_comp_with_creator(i, i, input, FooML.__NULL, factory.create_evaluator)
         return self
 
     def save_output(self, outs):
@@ -221,10 +226,10 @@ def __test1():
     #foo.add_classifier('RandomForest', input='x')
 
     #foo.cross_validate('K', k=4)
-    foo.evaluate('AUC', pred='y.lr')
+    foo.evaluate('AUC', input='y.lr')
 
     #foo.add_trans('decide', 'decide', input='y.lr', output='y.lr.c')
-    foo.evaluate('report', pred='y.lr.c')
+    foo.evaluate('report', input='y.lr.c')
     #foo.save_output(['y.lr', 'y.lr.c'])
     #foo.save_output('y.lr')
 
