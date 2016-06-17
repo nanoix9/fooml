@@ -78,7 +78,7 @@ def test1():
                       verbose=1) #, validation_data=(X_test, Y_test))
             )
 
-    foo.evaluate('report', pred='prob')
+    foo.evaluate('report', input='prob')
 
     foo.show()
     foo.compile()

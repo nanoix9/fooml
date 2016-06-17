@@ -76,23 +76,28 @@ __sklearn_config = {
 
         'LR': (sk.Clf, 'linear_model', 'LogisticRegression'),
         'DecisionTree': (sk.Clf, 'tree', 'DecisionTreeClassifier'),
-        'random': (sk.Clf, 'dummy', 'DummyClassifier', None, dict(strategy='stratified')),
+        #'random': (sk.Dummy, 'dummy', 'DummyClassifier', None, dict(strategy='stratified')),
+        'random': (sk.Dummy, 'dummy', 'DummyClassifier', None, dict(strategy='uniform')),
 
         'AUC': (sk.Eva, 'metrics', 'roc_auc_score'),
+        'logloss': (sk.Eva, 'metrics', 'log_loss'),
         'report': (sk.Eva, 'metrics', 'classification_report'),
         }
 
-#__keras_config = {
-#        'logloss': (kr.KerasComp
+__keras_config = {
+        #'logloss': (kr.Eva, 'metrics', 'log_loss'),
+        }
 
 __config = {
         'sklearn': __sklearn_config,
+        'keras': __keras_config,
         DEFAULT: __default_config,
         }
 
 
 __keras_comp_config = {
-        DEFAULT: kr.KerasComp
+        DEFAULT: kr.KerasComp,
+        'models': kr.Clf,
         }
 
 __comp_conf = {

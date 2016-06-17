@@ -30,12 +30,12 @@ class TargTransMixin(BaseMixin):
         logger.info('call function "%s"' % func.__name__)
         if isinstance(data, dataset.dsxy):
             return self._apply_xy(data, func)
-        if isinstance(data, dataset.dscy):
+        elif isinstance(data, dataset.dscy):
             return self._apply_cy(data, func)
         elif isinstance(data, dataset.dstv):
             pass
         else:
-            raise TypeError()
+            raise TypeError('not supported data type: %s' % data.__class__)
 
     def _apply_xy(self, data, func):
         X, y = data
@@ -56,6 +56,11 @@ class TargTransMixin(BaseMixin):
         dtran = dataset.dscy(cout, yout)
         return dtran
 
+#class ClassifierMixin(BaseMixin):
+#
+#    #def fit(self, data):
+#
+#    def trans(self, ds):
 
 class EvaMixin(BaseMixin):
 
@@ -65,6 +70,8 @@ class EvaMixin(BaseMixin):
     def trans(self, data):
         eva_list = []
         for d in slist.iter_multi(data, strict=True):
+            if not isinstance(d, (dataset.dssy, dataset.dscy)):
+                raise TypeError('data must be dssy or dscy type')
             score, y = d
             if y is None:
                 eva = np.nan

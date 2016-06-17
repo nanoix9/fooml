@@ -3,12 +3,16 @@
 
 import sys
 import comp
+import mixin
 from fooml import dataset
 from fooml.dt import slist
 from fooml import util
 from fooml.log import logger
 
 class KerasComp(comp.Comp):
+    pass
+
+class Clf(KerasComp):
 
     def __init__(self, obj, train_opt={}):
         super(KerasComp, self).__init__(obj)
@@ -41,6 +45,18 @@ class KerasComp(comp.Comp):
         #self._obj.fit_transform(X, y)
         #print self._obj
         #return self._obj.fit_transform(X, y)
+
+class Eva(mixin.EvaMixin, KerasComp):
+
+    def __init__(self, obj):
+        func, args, opt = obj
+        super(Eva, self).__init__(func)
+        self.args = args
+        self.opt = opt
+
+    def _cal_func(self, y, score):
+        return self._obj(y, score, *self.args, **self.opt)
+
 
 def main():
     return

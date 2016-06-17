@@ -100,6 +100,13 @@ class Clf(SkComp):
         #sys.exit()
         return score
 
+class Dummy(Clf):
+
+    def trans(self, ds):
+        X, y = ds
+        if len(X.shape) > 2:
+            X = X.reshape(X.shape[0], -1)
+        return Clf.trans(self, (X, y))
 
 class Eva(mixin.EvaMixin, SkComp):
 
