@@ -9,7 +9,8 @@ import dataset
 import stats
 import report
 import executor
-#import comp
+import comp
+from comp import misc
 import graph
 import factory
 import util
@@ -79,21 +80,31 @@ class FooML(object):
         self._comp.add_comp(name, acomp, inp, out)
         return self
 
-    def add_comp_with_creator(self, name, acomp, inp, out, creator=None, **opt):
+    def add_comp_with_creator(self, name, acomp, inp, out, creator=None, args=[], opt={}, comp_opt={}):
         if isinstance(acomp, basestring):
             if ':' in acomp:
                 package, acomp_name = acomp.split(':')
-                clf = creator(acomp_name, package=package, **opt)
+                clf = creator(acomp_name, package=package, args=args, opt=opt, comp_opt=comp_opt)
             else:
-                clf = creator(acomp, **opt)
-        else:
+                clf = creator(acomp, args=args, opt=opt, comp_opt=comp_opt)
+        elif isinstance(acomp, comp.Comp):
             clf = acomp
+        else:
+            clf = factory.obj2comp(acomp, comp_opt)
         self.add_comp(name, clf, inp, out)
         return self
 
-    def add_trans(self, name, acomp, input, output):
-        self.add_comp_with_creator(name, acomp, input, output, factory.create_trans)
+    def add_trans(self, name, acomp, input, output, args=[], opt={}, comp_opt={}):
+        self.add_comp_with_creator(name, acomp, input, output, factory.create_trans, args=args, opt=opt, comp_opt={})
         return self
+
+    def add_feat_trans(self, name, obj, input, output, args=[], opt={}, comp_opt={}):
+        if isinstance(obj, comp.Comp):
+            self.add_comp(name, obj, input, output)
+        elif hasattr(obj, '__call__'):
+            self.add_comp(name, misc.FeatTransComp((obj, args, opt), **comp_opt), input, output)
+        else:
+            raise TypeError()
 
     def add_inv_trans(self, name, another, input, output):
         acomp = self._comp.get_comp(another)
@@ -102,13 +113,13 @@ class FooML(object):
         return self
 
     def add_classifier(self, name, acomp, input, output=__NULL, proba=None):
-        self.add_comp_with_creator(name, acomp, input, output, factory.create_classifier, proba=proba)
+        self.add_comp_with_creator(name, acomp, input, output, factory.create_classifier, comp_opt=dict(proba=proba))
         return self
 
     def add_nn(self, name, nn, input, output=__NULL, train_opt={}):
         ''' Add nerual networks '''
 
-        acomp = factory.obj2comp(nn, train_opt=train_opt)
+        acomp = factory.obj2comp(nn, comp_opt=dict(train_opt=train_opt))
         self.add_comp(name, acomp, input, output)
 
     def evaluate(self, indic, input, acomp=None):

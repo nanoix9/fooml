@@ -86,6 +86,7 @@ __sklearn_config = {
 
 __keras_config = {
         #'logloss': (kr.Eva, 'metrics', 'log_loss'),
+        'to_categorical': (misc.TargTransComp, 'utils.np_utils', 'to_categorical'),
         }
 
 __config = {

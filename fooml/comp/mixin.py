@@ -9,13 +9,29 @@ from fooml import util
 from fooml.log import logger
 
 
+class DsMixin(object):
+
+    def get_train_valid(self, data):
+        if isinstance(data, dataset.dsxy):
+            X_train, y_train = data
+            X_valid, y_valid = None, None
+        elif isinstance(data, dataset.dstv):
+            (X_train, y_train), ds_valid = data
+            if ds_valid is None:
+                X_valid, y_valid = None, None
+            else:
+                X_valid, y_valid = ds_valid
+        else:
+            raise TypeError('Unknown dataset type: %s' % data.__class__)
+        return X_train, y_train, X_valid, y_valid
+
 class BaseMixin(object):
 
     def fit_trans(self, data):
         self.fit(data)
         return self.trans(data)
 
-class TargTransMixin(BaseMixin):
+class TransMixin(BaseMixin):
 
     def fit(self, data):
         return self._apply(data, self._fit_func)
@@ -26,35 +42,16 @@ class TargTransMixin(BaseMixin):
     def trans(self, data):
         return self._apply(data, self._trans_func)
 
+class TargTransMixin(TransMixin):
+
     def _apply(self, data, func):
-        logger.info('call function "%s"' % func.__name__)
-        if isinstance(data, dataset.dsxy):
-            return self._apply_xy(data, func)
-        elif isinstance(data, dataset.dscy):
-            return self._apply_cy(data, func)
-        elif isinstance(data, dataset.dstv):
-            pass
-        else:
-            raise TypeError('not supported data type: %s' % data.__class__)
+        return dataset.mapy(func, data)
 
-    def _apply_xy(self, data, func):
-        X, y = data
-        if y is None:
-            out = None
-        else:
-            out = func(y)
-        dtran = dataset.dsxy(X, out)
-        return dtran
+class FeatTransMixin(TransMixin):
 
-    def _apply_cy(self, data, func):
-        c, y = data
-        if y is None:
-            yout = None
-        else:
-            yout = func(y)
-        cout = func(c)
-        dtran = dataset.dscy(cout, yout)
-        return dtran
+    def _apply(self, data, func):
+        return dataset.mapx(func, data)
+
 
 #class ClassifierMixin(BaseMixin):
 #

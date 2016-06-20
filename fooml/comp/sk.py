@@ -31,15 +31,9 @@ class TargTrans(mixin.TargTransMixin, SkComp):
 
     def __init__(self, obj):
         super(TargTrans, self).__init__(obj)
-
-    def _fit_func(self, y):
-        return self._obj.fit(y)
-
-    def _fit_trans_func(self, y):
-        return self._obj.fit_transform(y)
-
-    def _trans_func(self, y):
-        return self._obj.transform(y)
+        self._fit_func = self._obj.fit
+        self._fit_trans_func = self._obj.fit_transform
+        self._trans_func = self._obj.transform
 
 class TargInvTrans(mixin.TargTransMixin, SkComp):
 

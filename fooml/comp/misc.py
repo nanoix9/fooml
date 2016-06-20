@@ -4,9 +4,11 @@
 import sys
 
 from comp import FunComp
+import mixin
 from fooml import dataset
 from fooml.dt import slist
 from fooml import util
+from fooml.log import logger
 
 class DsTransComp(FunComp):
 
@@ -48,10 +50,27 @@ class DsTransComp(FunComp):
         return FunComp.trans(self, data)
 
 
-class TargTransComp(DsTransComp):
+class FuncTransComp(FunComp):
 
     def __init__(self, fun_with_arg):
-        super(TargTransComp, self).__init__(fun_with_arg, 'y')
+        super(FuncTransComp, self).__init__(fun_with_arg)
+        self._fit_func = None
+
+    def _trans_func(self, data):
+        logger.info('call function "%s(%s, %s)"' % \
+                (self._obj.__name__, \
+                ', '.join(str(a) for a in self._args), \
+                ', '.join('{}={}'.format(k, v) for k, v in self._opt.iteritems())))
+        return self._obj(data, *self._args, **self._opt)
+
+    def _fit_trans_func(self, data):
+        return self._trans_func(data)
+
+class TargTransComp(mixin.TargTransMixin, FuncTransComp):
+    pass
+
+class FeatTransComp(mixin.FeatTransMixin, FuncTransComp):
+    pass
 
 class ScoreComp(DsTransComp):
 

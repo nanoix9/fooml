@@ -10,15 +10,14 @@ import util
 from log import logger
 
 
-def create_classifier(name, package='sklearn', proba=None, args=[], opt={}):
-    return create_comp(package, name, args, opt, {'proba': proba})
+def create_classifier(name, package='sklearn', args=[], opt={}, comp_opt={}):
+    return create_comp(package, name, args, opt, comp_opt)
 
-def create_evaluator(name, package='sklearn', args=[], opt={}):
-    return create_comp(package, name, args, opt, {})
+def create_evaluator(name, package='sklearn', args=[], opt={}, comp_opt={}):
+    return create_comp(package, name, args, opt, comp_opt)
 
-#def create_trans(name, package=comp.conf.DEFAULT, args=[], opt={}):
-def create_trans(name, package=comp.conf.ANY, args=[], opt={}):
-    return create_comp(package, name, args, opt, {})
+def create_trans(name, package=comp.conf.ANY, args=[], opt={}, comp_opt={}):
+    return create_comp(package, name, args, opt, comp_opt)
 
 def create_inv_trans(acomp):
     assert(acomp is not None)
@@ -27,13 +26,13 @@ def create_inv_trans(acomp):
             (comp_class.__module__, comp_class.__name__))
     return comp_class(acomp)
 
-def obj2comp(obj, **opt):
+def obj2comp(obj, comp_opt={}):
     assert(obj is not None)
     comp_class = comp.conf.get_comp_class(obj.__class__.__module__, obj.__class__.__name__)
     if comp_class is None:
-        return comp.Comp(obj, **opt)
+        return comp.Comp(obj, **comp_opt)
     else:
-        return comp_class(obj, **opt)
+        return comp_class(obj, **comp_opt)
 
 def create_comp(package, name, args, opt, comp_opt):
     try:

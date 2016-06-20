@@ -199,6 +199,32 @@ def map(func, data):
         setattr(dtran, name, func(name, value))
     return dtran
 
+def mapx(func, data):
+    if isinstance(data, dsxy):
+        return dsxy(func(data.X), data.y)
+    elif isinstance(data, dstv):
+        return dstv(mapx(data.train), mapx(data.valid))
+    else:
+        raise TypeError('not supported data type: %s' % data.__class__)
+def mapy(func, data):
+    if isinstance(data, dsxy):
+        return dsxy(data.X, __apply_maybe(func, data.y))
+    elif isinstance(data, dscy):
+        return dscy(func(data.c), __apply_maybe(func, data.y))
+    elif isinstance(data, dstv):
+        return dstv(mapy(data.train), mapy(data.valid))
+    else:
+        raise TypeError('not supported data type: %s' % data.__class__)
+
+def mapxy(func, data):
+    pass
+
+def __apply_maybe(func, data):
+    if data is None:
+        return None
+    else:
+        return func(data)
+
 def _test_csv():
     path = 'test/min.csv'
     print load_csv(path, target='int')

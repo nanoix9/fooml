@@ -12,19 +12,19 @@ from fooml.log import logger
 class KerasComp(comp.Comp):
     pass
 
-class Clf(KerasComp):
+class Clf(mixin.DsMixin, KerasComp):
 
     def __init__(self, obj, train_opt={}):
         super(KerasComp, self).__init__(obj)
         self._train_opt = train_opt
 
     def fit(self, data):
-        (X_train, y_train), ds_valid = data
+        X_train, y_train, X_valid, y_valid = self.get_train_valid(data)
         opt = dict(self._train_opt)
         logger.info('trainning nerual network with options: %s' % str(opt))
-        if ds_valid is not None:
-            opt['validation_data'] = (ds_valid.X, ds_valid.y)
-            logger.info('and validation set: X%s, y%s' % (ds_valid.X.shape, ds_valid.y.shape))
+        if X_valid is not None:
+            opt['validation_data'] = (X_valid, y_valid)
+            logger.info('and validation set: X%s, y%s' % (X_valid.shape, y_valid.shape))
         else:
             logger.info('and no validation set')
         return self._obj.fit(X_train, y_train, **opt)
