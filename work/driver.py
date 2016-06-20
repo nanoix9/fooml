@@ -17,17 +17,20 @@ import fooml
 img_size=(64, 64)
 color_type = 1
 
-batch_size = 256
+batch_size = 128
 nb_epoch = 1
-nb_epoch = 12
+nb_epoch = 5
+#nb_epoch = 12
 
 def main():
     foo = fooml.FooML()
+    foo.enable_data_cache()
 
     data_name = 'drive'
     #foo.load_image_grouped(data_name, train_path='/vola1/scndof/data/drive/sample', resize=(64, 64))
     foo.load_image_grouped(data_name, train_path='/vola1/scndof/data/drive/train', resize=img_size)
     #foo.load_image_grouped('driver', path='~/data/driver')
+    #sys.exit()
 
     data_name_labeled = 'y_indexed'
     foo.add_trans('le', 'labelencoder', input=data_name, output=data_name_labeled)
@@ -36,13 +39,14 @@ def main():
     foo.add_trans('cate', 'to_categorical', input=data_name_labeled , output=data_cate, args=[10])
     foo.add_feat_trans('reshape',
             lambda data: data.reshape(data.shape[0], color_type, data.shape[1], data.shape[2]),
-            input=data_cate , output=data_reshape)
+            input=data_cate, output=data_reshape)
     pred = 'y_pred'
     proba = 'y_proba'
 
     #foo.add_classifier('rand', 'random', input=data_name_labeled, output=[pred, proba], proba='with')
     #pred = data_name_labeled
-    model = create_model_v1(img_size, color_type)
+    #model = create_model_v1(img_size, color_type)
+    model = create_model_v2(img_size, color_type)
     foo.add_nn('nn', model, input=data_reshape, output=proba,
             train_opt=dict(batch_size=batch_size, nb_epoch=nb_epoch, verbose=1)
             )
@@ -82,6 +86,38 @@ def create_model_v1(img_size, color_type=1):
     model.add(Activation('softmax'))
 
     model.compile(Adam(lr=1e-3), loss='categorical_crossentropy')
+    return model
+
+def create_model_v2(img_size, color_type=1):
+    img_rows, img_cols = img_size
+
+    nb_classes = 10
+    # number of convolutional filters to use
+    nb_filters = 8
+    # size of pooling area for max pooling
+    nb_pool = 2
+    # convolution kernel size
+    nb_conv = 2
+
+    model = Sequential()
+    model.add(Convolution2D(nb_filters, nb_conv, nb_conv,
+                            border_mode='valid',
+                            input_shape=(color_type, img_rows, img_cols)))
+    model.add(Activation('relu'))
+    model.add(Convolution2D(nb_filters, nb_conv, nb_conv))
+    model.add(Activation('relu'))
+    model.add(MaxPooling2D(pool_size=(nb_pool, nb_pool)))
+    model.add(Dropout(0.25))
+
+    model.add(Flatten())
+    model.add(Dense(128))
+    model.add(Activation('relu'))
+    model.add(Dropout(0.5))
+    model.add(Dense(nb_classes))
+    model.add(Activation('softmax'))
+
+    sgd = SGD(lr=0.1, decay=0, momentum=0, nesterov=False)
+    model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['accuracy'])
     return model
 
 

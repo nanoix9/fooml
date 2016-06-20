@@ -6,6 +6,7 @@ import os.path
 #import collections as c
 import wrap
 import dataset
+import cache
 import stats
 import report
 import executor
@@ -15,6 +16,7 @@ import graph
 import factory
 import util
 from dt import slist
+from log import logger
 
 
 class FooML(object):
@@ -31,6 +33,7 @@ class FooML(object):
         self._exec = executor.Executor(self._reporter)
         self._target = None
         self._outputs = []
+        self._use_data_cache = False
 
         self.add_reporter(report.LogReporter())
 
@@ -43,17 +46,26 @@ class FooML(object):
         self.add_data(ds, name=name)
 
     def load_image_grouped(self, name, path=None, train_path=None, test_path=None, **opt):
-        if path is not None:
-            train_path = os.path.join(path, 'train')
-            test_path = os.path.join(path, 'test')
-        #ds = dataset.load_image(image_path, target_path, sample_id, target)
-        ds_train = dataset.load_image_grouped(train_path, **opt)
-        if test_path is not None:
-            ds_test = dataset.load_image_grouped(test_path, **opt)
-            ds = (ds_train, ds_test)
+        ds = self._get_data_from_cache(name)
+
+        if ds is None:
+            logger.info('cache missed, load original data')
+            if path is not None:
+                train_path = os.path.join(path, 'train')
+                test_path = os.path.join(path, 'test')
+            #ds = dataset.load_image(image_path, target_path, sample_id, target)
+            ds_train = dataset.load_image_grouped(train_path, **opt)
+            if test_path is not None:
+                ds_test = dataset.load_image_grouped(test_path, **opt)
+                ds = (ds_train, ds_test)
+            else:
+                ds_test = None
+                ds = ds_train
+            self._set_data_to_cache(name, ds)
+            logger.info('data "%s" is cached' % name)
         else:
-            ds_test = None
-            ds = ds_train
+            logger.info('load data from cache')
+
         self.add_data(ds, name=name)
 
     def add_data(self, data, test=None, name='data'):
@@ -75,6 +87,20 @@ class FooML(object):
 
     def get_train_data(self, name):
         return self._ds_train[name]
+
+    def enable_data_cache(self, cache_dir=None):
+        self._data_cache = cache.DataCache(cache_dir)
+        self._use_data_cache = True
+        logger.info('data cache enabled: %s' % self._data_cache._get_path(''))
+
+    def _get_data_from_cache(self, name):
+        if self._use_data_cache:
+            return self._data_cache.get(name)
+        return None
+
+    def _set_data_to_cache(self, name, data):
+        if self._use_data_cache:
+            return self._data_cache.set(name, data)
 
     def add_comp(self, name, acomp, inp, out):
         self._comp.add_comp(name, acomp, inp, out)
