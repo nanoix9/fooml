@@ -14,6 +14,8 @@ from keras.utils import np_utils
 from keras.models import model_from_json
 
 import fooml
+from fooml import dataset
+
 img_size=(64, 64)
 color_type = 1
 
@@ -23,6 +25,8 @@ nb_epoch = 5
 #nb_epoch = 12
 
 def main():
+    global img_size
+
     foo = fooml.FooML()
     foo.enable_data_cache()
 
@@ -32,24 +36,43 @@ def main():
     #foo.load_image_grouped('driver', path='~/data/driver')
     #sys.exit()
 
+    #data_name = 'mnist'
+    #foo.use_data(data_name)
+    #train = foo.get_train_data(data_name).train
+
+    X_train, y_train = dataset.get_train(foo.get_train_data(data_name))
+    img_size = X_train.shape[1:3]
+    print img_size
+
     data_name_labeled = 'y_indexed'
-    foo.add_trans('le', 'labelencoder', input=data_name, output=data_name_labeled)
+    if len(y_train.shape) <= 1:
+        foo.add_trans('le', 'labelencoder', input=data_name, output=data_name_labeled)
+    else:
+        data_name_labeled = data_name
+
     data_cate = 'y_cate'
+    if len(y_train.shape) <= 1:
+        foo.add_trans('cate', 'to_categorical', input=data_name_labeled , output=data_cate, args=[10])
+    else:
+        data_cate = data_name_labeled
+    #data_cate = data_name_labeled
+
     data_reshape = 'x_reshape'
-    foo.add_trans('cate', 'to_categorical', input=data_name_labeled , output=data_cate, args=[10])
-    foo.add_feat_trans('reshape',
-            lambda data: data.reshape(data.shape[0], color_type, data.shape[1], data.shape[2]),
-            input=data_cate, output=data_reshape)
+    if len(X_train.shape) < 4:
+        foo.add_feat_trans('reshape',
+                lambda data: data.reshape(data.shape[0], color_type, data.shape[1], data.shape[2]),
+                input=data_cate, output=data_reshape)
+    else:
+        data_reshape = data_cate
     pred = 'y_pred'
     proba = 'y_proba'
 
-    #foo.add_classifier('rand', 'random', input=data_name_labeled, output=[pred, proba], proba='with')
-    #pred = data_name_labeled
+    #foo.add_classifier('rand', 'random', input=data_reshape, output=[pred, proba], proba='with')
     #model = create_model_v1(img_size, color_type)
     model = create_model_v2(img_size, color_type)
     foo.add_nn('nn', model, input=data_reshape, output=proba,
-            train_opt=dict(batch_size=batch_size, nb_epoch=nb_epoch, verbose=1)
-            )
+            train_opt=dict(batch_size=batch_size, nb_epoch=nb_epoch, verbose=1, shuffle=True))
+    #pred = data_name_labeled
 
     foo.evaluate('logloss', input=proba)
 
@@ -85,7 +108,7 @@ def create_model_v1(img_size, color_type=1):
     model.add(Dense(10))
     model.add(Activation('softmax'))
 
-    model.compile(Adam(lr=1e-3), loss='categorical_crossentropy')
+    model.compile(Adam(lr=1e-3), loss='categorical_crossentropy', metrics=['accuracy'])
     return model
 
 def create_model_v2(img_size, color_type=1):
@@ -117,7 +140,8 @@ def create_model_v2(img_size, color_type=1):
     model.add(Activation('softmax'))
 
     sgd = SGD(lr=0.1, decay=0, momentum=0, nesterov=False)
-    model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['accuracy'])
+    #model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['accuracy'])
+    model.compile(loss='categorical_crossentropy', optimizer='adadelta', metrics=['accuracy'])
     return model
 
 

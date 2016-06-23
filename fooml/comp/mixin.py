@@ -9,22 +9,6 @@ from fooml import util
 from fooml.log import logger
 
 
-class DsMixin(object):
-
-    def get_train_valid(self, data):
-        if isinstance(data, dataset.dsxy):
-            X_train, y_train = data
-            X_valid, y_valid = None, None
-        elif isinstance(data, dataset.dstv):
-            (X_train, y_train), ds_valid = data
-            if ds_valid is None:
-                X_valid, y_valid = None, None
-            else:
-                X_valid, y_valid = ds_valid
-        else:
-            raise TypeError('Unknown dataset type: %s' % data.__class__)
-        return X_train, y_train, X_valid, y_valid
-
 class BaseMixin(object):
 
     def fit_trans(self, data):

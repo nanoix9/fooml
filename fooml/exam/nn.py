@@ -26,7 +26,7 @@ def create_nn_v1(ds):
     nb_pool = 2
     # convolution kernel size
     nb_conv = 3
-    img_rows, img_cols = X.shape[2:4]
+    img_rows, img_cols = X.shape[1:3]
 
     # convert class vectors to binary class matrices
     #Y_train = np_utils.to_categorical(y_train, nb_classes)
@@ -73,7 +73,15 @@ def test1():
     #data_img = 'img'
     #foo.load_image(data_img, image_dir=, target=)
 
-    foo.add_nn('clf', model, input=data_img, output='prob',
+    data_cate = 'y_cate'
+    foo.add_trans('cate', 'to_categorical', input=data_img, output=data_cate, args=[10])
+
+    data_reshape = 'x_reshape'
+    foo.add_feat_trans('reshape',
+            lambda data: data.reshape(data.shape[0], 1, data.shape[1], data.shape[2]),
+            input=data_cate, output=data_reshape)
+
+    foo.add_nn('clf', model, input=data_reshape, output='prob',
             train_opt=dict(batch_size=batch_size, nb_epoch=nb_epoch,
                       verbose=1) #, validation_data=(X_test, Y_test))
             )

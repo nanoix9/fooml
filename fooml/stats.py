@@ -50,7 +50,14 @@ def summary(data):
 def desc_cate(data):
     if isinstance(data, pd.DataFrame):
         d = []
-        for col in data:
+        ncol = data.shape[1]
+        for icol, col in enumerate(data):
+            if ncol > 60:
+                if icol == 30:
+                    d.append(('...', '...'))
+                    continue
+                elif icol > 30 and icol < ncol - 30:
+                    continue
             dc = desc_cate_series(data[col])
             if dc is not None:
                 d.append((col, dc))
@@ -86,25 +93,28 @@ def _summary(data):
     if data is None:
         return '  data is NONE'
 
+    ret = ['size:', str(data.shape)]
+
     if isinstance(data, pd.DataFrame):
         df = data
     elif isinstance(data, np.ndarray):
         if len(data.shape) <= 2:
             df = pd.DataFrame(data)
         else:
-            #raise ValueError('data with more than 2 dimension is not supported yet')
-            ret = ['size: %s' % str(data.shape), \
-                    ]
+            # TODO too large, skip it as workaround
             return ret
+            #raise ValueError('data with more than 2 dimension is not supported yet')
+            #df = pd.DataFrame(data.reshape(data.shape[0], -1))
+            df = pd.DataFrame(data.flatten())
     else:
         raise ValueError('unknown data type: %s' % type(data))
+
 
     dh = df.head(5)
     dn = df.describe().transpose()
     dc = desc_cate(df)
-    ret = ['size: %s' % str(df.shape), \
-            'head n:', str(dh), \
-            'take as numeric type:', str(dn)]
+    ret.extend(['head n:', str(dh), \
+            'take as numeric type:', str(dn)])
     ret.append('take as category type:')
     if dc:
         ret.append(str(dc))
@@ -126,7 +136,8 @@ class CateDesc(object):
 
     def __str__(self):
         #print self._data
-        str_list = [ str(pd.DataFrame({n:s}).transpose()) for n, s in self._data ]
+        str_list = [ '......' if n == '...' else str(pd.DataFrame({n:s}).transpose()) \
+                for n, s in self._data ]
         return '\n'.join(str_list)
 
 def main():

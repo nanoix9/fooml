@@ -12,14 +12,14 @@ from fooml.log import logger
 class KerasComp(comp.Comp):
     pass
 
-class Clf(mixin.DsMixin, KerasComp):
+class Clf(KerasComp):
 
     def __init__(self, obj, train_opt={}):
         super(KerasComp, self).__init__(obj)
         self._train_opt = train_opt
 
     def fit(self, data):
-        X_train, y_train, X_valid, y_valid = self.get_train_valid(data)
+        X_train, y_train, X_valid, y_valid = dataset.get_train_valid(data)
         opt = dict(self._train_opt)
         logger.info('trainning nerual network with options: %s' % str(opt))
         if X_valid is not None:

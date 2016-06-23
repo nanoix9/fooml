@@ -176,17 +176,17 @@ def load_toy(name, **kwds):
         # the data, shuffled and split between train and test sets
         (X_train, y_train), (X_test, y_test) = mnist.load_data()
 
-        X_train = X_train.reshape(X_train.shape[0], 1, img_rows, img_cols)
-        X_test = X_test.reshape(X_test.shape[0], 1, img_rows, img_cols)
-        X_train = X_train.astype('float32')
-        X_test = X_test.astype('float32')
-        X_train /= 255
-        X_test /= 255
+        #X_train = X_train.reshape(X_train.shape[0], 1, img_rows, img_cols)
+        #X_test = X_test.reshape(X_test.shape[0], 1, img_rows, img_cols)
+        #X_train = X_train.astype('float32')
+        #X_test = X_test.astype('float32')
+        #X_train /= 255
+        #X_test /= 255
         #print('X_train shape:', X_train.shape)
         #print(X_train.shape[0], 'train samples')
         #print(X_test.shape[0], 'test samples')
-        y_train = np_utils.to_categorical(y_train, nb_classes)
-        y_test = np_utils.to_categorical(y_test, nb_classes)
+        #y_train = np_utils.to_categorical(y_train, nb_classes)
+        #y_test = np_utils.to_categorical(y_test, nb_classes)
         return dstv(dsxy(X_train, y_train), dsxy(X_test, y_test)), dsxy(X_test, y_test)
 
 def map(func, data):
@@ -203,7 +203,7 @@ def mapx(func, data):
     if isinstance(data, dsxy):
         return dsxy(func(data.X), data.y)
     elif isinstance(data, dstv):
-        return dstv(mapx(data.train), mapx(data.valid))
+        return dstv(mapx(func, data.train), mapx(func, data.valid))
     else:
         raise TypeError('not supported data type: %s' % data.__class__)
 def mapy(func, data):
@@ -212,7 +212,7 @@ def mapy(func, data):
     elif isinstance(data, dscy):
         return dscy(func(data.c), __apply_maybe(func, data.y))
     elif isinstance(data, dstv):
-        return dstv(mapy(data.train), mapy(data.valid))
+        return dstv(mapy(func, data.train), mapy(func, data.valid))
     else:
         raise TypeError('not supported data type: %s' % data.__class__)
 
@@ -224,6 +224,33 @@ def __apply_maybe(func, data):
         return None
     else:
         return func(data)
+
+def get_train_valid(data):
+    if isinstance(data, dsxy):
+        X_train, y_train = data
+        X_valid, y_valid = None, None
+    elif isinstance(data, dstv):
+        (X_train, y_train), ds_valid = data
+        if ds_valid is None:
+            X_valid, y_valid = None, None
+        else:
+            X_valid, y_valid = ds_valid
+    else:
+        raise TypeError('Unknown dataset type: %s' % data.__class__)
+    return X_train, y_train, X_valid, y_valid
+
+def get_train(data):
+    if isinstance(data, dsxy):
+        X_train, y_train = data
+    elif isinstance(data, dstv):
+        (X_train, y_train), ds_valid = data
+    else:
+        raise TypeError('Unknown dataset type: %s' % data.__class__)
+    return X_train, y_train
+
+
+
+######### Tests ########
 
 def _test_csv():
     path = 'test/min.csv'
