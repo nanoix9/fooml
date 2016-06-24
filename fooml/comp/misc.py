@@ -3,12 +3,44 @@
 
 import sys
 
-from comp import FunComp
+from comp import StatelessComp
 import mixin
 from fooml import dataset
 from fooml.dt import slist
 from fooml import util
 from fooml.log import logger
+
+
+class FunComp(StatelessComp):
+
+    def __init__(self, fun_with_arg):
+        if isinstance(fun_with_arg, tuple):
+            fun, args, opt = fun_with_arg[0], [], {}
+            if len(fun_with_arg) > 1:
+                args = fun_with_arg[1]
+            if len(fun_with_arg) > 2:
+                opt = fun_with_arg[2]
+        else:
+            fun = fun_with_arg
+        super(FunComp, self).__init__(fun)
+        self._args = args
+        self._opt = opt
+
+    def __repr__(self):
+        full_name = self.__class__.__module__ + '.' + self.__class__.__name__
+        return '%s(\n  func=%s,\n  args=%s,\n  opt=%s)' \
+                % (full_name, (str(self._obj.__name__)), self._args, self._opt)
+
+    def trans(self, data):
+        return self._obj(data, *self._args, **self._opt)
+
+    def _log_func(self):
+        logger.info('call function "%s(%s, %s)"' % \
+                (self._obj.__name__, \
+                ', '.join(str(a) for a in self._args), \
+                ', '.join('{}={}'.format(k, v) for k, v in self._opt.iteritems())))
+
+
 
 class DsTransComp(FunComp):
 
@@ -57,10 +89,7 @@ class FuncTransComp(FunComp):
         self._fit_func = None
 
     def _trans_func(self, data):
-        logger.info('call function "%s(%s, %s)"' % \
-                (self._obj.__name__, \
-                ', '.join(str(a) for a in self._args), \
-                ', '.join('{}={}'.format(k, v) for k, v in self._opt.iteritems())))
+        self._log_func()
         return self._obj(data, *self._args, **self._opt)
 
     def _fit_trans_func(self, data):
@@ -71,6 +100,16 @@ class TargTransComp(mixin.TargTransMixin, FuncTransComp):
 
 class FeatTransComp(mixin.FeatTransMixin, FuncTransComp):
     pass
+
+class SplitComp(mixin.SplitMixin, FunComp):
+
+    def __init__(self, fun_with_arg):
+        super(SplitComp, self).__init__(fun_with_arg)
+        self._fit_func = None
+
+    def _split(self, X, y):
+        self._log_func()
+        return self._obj(X, y, *self._args, **self._opt)
 
 class ScoreComp(DsTransComp):
 

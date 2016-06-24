@@ -36,6 +36,19 @@ class FeatTransMixin(TransMixin):
     def _apply(self, data, func):
         return dataset.mapx(func, data)
 
+class SplitMixin(BaseMixin):
+
+    def fit_trans(self, data):
+        if isinstance(data, dataset.dstv):
+            return data
+        elif not isinstance(data, dataset.dsxy):
+            raise TypeError('data is not dsxy type')
+        X, y = data
+        Xt, Xv, yt, yv = self._split(X, y)
+        return dataset.dstv(dataset.dsxy(Xt, yt), dataset.dsxy(Xv, yv))
+
+    def trans(self, data):
+        return data
 
 #class ClassifierMixin(BaseMixin):
 #

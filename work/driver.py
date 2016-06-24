@@ -22,7 +22,8 @@ color_type = 1
 batch_size = 128
 nb_epoch = 1
 nb_epoch = 5
-#nb_epoch = 12
+nb_epoch = 12
+nb_epoch = 1000
 
 def main():
     global img_size
@@ -38,7 +39,6 @@ def main():
 
     #data_name = 'mnist'
     #foo.use_data(data_name)
-    #train = foo.get_train_data(data_name).train
 
     X_train, y_train = dataset.get_train(foo.get_train_data(data_name))
     img_size = X_train.shape[1:3]
@@ -67,10 +67,14 @@ def main():
     pred = 'y_pred'
     proba = 'y_proba'
 
+    data_split = 'data_split'
+    foo.add_trans('split', 'split', input=data_reshape, output=data_split, opt=dict(test_size=0.2))
+    #data_split = data_reshape
+
     #foo.add_classifier('rand', 'random', input=data_reshape, output=[pred, proba], proba='with')
     #model = create_model_v1(img_size, color_type)
     model = create_model_v2(img_size, color_type)
-    foo.add_nn('nn', model, input=data_reshape, output=proba,
+    foo.add_nn('nn', model, input=data_split, output=proba,
             train_opt=dict(batch_size=batch_size, nb_epoch=nb_epoch, verbose=1, shuffle=True))
     #pred = data_name_labeled
 
