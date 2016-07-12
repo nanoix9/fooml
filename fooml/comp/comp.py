@@ -96,29 +96,6 @@ class ConstComp(StatelessComp):
         logger.debug('trans of comp const: %s, %s' % (self._obj, data))
         return self._obj
 
-class FunComp(StatelessComp):
-
-    def __init__(self, fun_with_arg):
-        if isinstance(fun_with_arg, tuple):
-            fun, args, opt = fun_with_arg[0], [], {}
-            if len(fun_with_arg) > 1:
-                args = fun_with_arg[1]
-            if len(fun_with_arg) > 2:
-                opt = fun_with_arg[2]
-        else:
-            fun = fun_with_arg
-        super(FunComp, self).__init__(fun)
-        self._args = args
-        self._opt = opt
-
-    def __repr__(self):
-        full_name = self.__class__.__module__ + '.' + self.__class__.__name__
-        return '%s(\n  func=%s,\n  args=%s,\n  opt=%s)' \
-                % (full_name, (str(self._obj.__name__)), self._args, self._opt)
-
-    def trans(self, data):
-        return self._obj(data, *self._args, **self._opt)
-
 def main():
     return
 

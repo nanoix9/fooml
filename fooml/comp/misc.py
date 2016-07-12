@@ -107,9 +107,11 @@ class SplitComp(mixin.SplitMixin, FunComp):
         super(SplitComp, self).__init__(fun_with_arg)
         self._fit_func = None
 
-    def _split(self, X, y):
+    def _split(self, X, y, index):
         self._log_func()
-        return self._obj(X, y, *self._args, **self._opt)
+        ret = self._obj(X, y, *self._args, **self._opt)
+        #TODO: not support index yet
+        return ret + [None, None]
 
 class ScoreComp(DsTransComp):
 
@@ -125,7 +127,7 @@ class DecideComp(DsTransComp):
         if not isinstance(data, dataset.dssy):
             raise ValueError('data should be fooml.dataset.dssy type')
         cls = self._call_func(data.score)
-        return dataset.dscy(cls, data.y)
+        return dataset.dscy(cls, data.y, data.index)
 
 
 def main():

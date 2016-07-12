@@ -77,8 +77,12 @@ class slist(object):
             yield tuple((None, obj) + args)
 
     @staticmethod
+    def enumerate(obj):
+        return slist.enumerate_multi(obj)
+
+    @staticmethod
     def iter(obj):
-        return iter_multi(obj)
+        return slist.iter_multi(obj)
 
     @staticmethod
     def iter_multi(obj, *args, **kwds):

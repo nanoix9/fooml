@@ -32,9 +32,10 @@ class dataset(object):
 
 class dsxy(dataset):
 
-    def __init__(self, X=None, y=None):
+    def __init__(self, X, y=None, index=None):
         self.X = X
         self.y = y
+        self.index = index
 
     def __iter__(self):
         yield self.X
@@ -42,9 +43,10 @@ class dsxy(dataset):
 
 class dssy(dataset):
 
-    def __init__(self, score=None, y=None):
+    def __init__(self, score, y=None, index=None):
         self.score = score
         self.y = y
+        self.index = index
 
     def __iter__(self):
         yield self.score
@@ -52,9 +54,10 @@ class dssy(dataset):
 
 class dscy(dataset):
 
-    def __init__(self, cls=None, y=None):
+    def __init__(self, cls, y=None, index=None):
         self.cls = cls
         self.y = y
+        self.index = index
 
     def __iter__(self):
         yield self.cls
@@ -131,6 +134,7 @@ def _get_im_cv2(path, resize=None, color_type=1):
 def load_image_grouped(image_path, resize=None, file_ext='jpg'):
     X_train = []
     y_train = []
+    file_names = []
 
     logger.info('read images from path "%s"' % image_path)
     for j in _subdirs(image_path):
@@ -142,6 +146,8 @@ def load_image_grouped(image_path, resize=None, file_ext='jpg'):
             img = _get_im_cv2(fl, resize, color_type=1)
             X_train.append(img)
             y_train.append(j)
+            #file_names.append(fl)
+            file_names.append(flbase)
             #driver_id.append(driver_data[flbase])
 
     #unique_drivers = sorted(list(set(driver_id)))
@@ -150,7 +156,30 @@ def load_image_grouped(image_path, resize=None, file_ext='jpg'):
     X_train = np.array(X_train)
     y_train = np.array(y_train)
 
-    return dsxy(X_train, y_train)
+    return dsxy(X_train, y_train, index=np.array(file_names))
+
+def load_image_flat(image_path, target=None, resize=None, file_ext='jpg'):
+    X_train = []
+    #y_train = []
+    y_train = None
+    file_names = []
+
+    path = os.path.join(image_path, '*.%s' % file_ext)
+    files = glob.glob(path)
+    logger.info('read images from path {}: {} files'.format(path, len(files)))
+    for fl in files:
+        flbase = os.path.basename(fl)
+        img = _get_im_cv2(fl, resize, color_type=1)
+        X_train.append(img)
+        #y_train.append(j)
+        file_names.append(flbase)
+
+    #X_train = np.array(X_train)
+    X_train = np.array(X_train)
+    #y_train = np.array(y_train)
+
+    return dsxy(X_train, y_train, index=np.array(file_names))
+
 
 def load_toy(name, **kwds):
     name = name.lower()
@@ -189,6 +218,16 @@ def load_toy(name, **kwds):
         #y_test = np_utils.to_categorical(y_test, nb_classes)
         return dstv(dsxy(X_train, y_train), dsxy(X_test, y_test)), dsxy(X_test, y_test)
 
+def save_csv(ds, path, opt):
+    #print ds
+    if isinstance(ds, dssy):
+        #print 'score:', ds.score
+        if 'columns' in opt:
+            columns = opt['columns']()
+        pd.DataFrame(ds.score, columns=columns, index=ds.index).to_csv(path)
+    else:
+        raise TypeError('Type not supported: {}'.format(util.get_type_fullname(ds)))
+
 def map(func, data):
     if not isinstance(data, dataset):
         raise TypeError('data set is not an instance of dataset')
@@ -201,14 +240,18 @@ def map(func, data):
 
 def mapx(func, data):
     if isinstance(data, dsxy):
-        return dsxy(func(data.X), data.y)
+        return dsxy(func(data.X), data.y, data.index)
     elif isinstance(data, dstv):
         return dstv(mapx(func, data.train), mapx(func, data.valid))
     else:
         raise TypeError('not supported data type: %s' % data.__class__)
+
 def mapy(func, data):
     if isinstance(data, dsxy):
-        return dsxy(data.X, __apply_maybe(func, data.y))
+        if data.y is None:
+            return data
+        else:
+            return dsxy(data.X, func(data.y), data.index)
     elif isinstance(data, dscy):
         return dscy(func(data.c), __apply_maybe(func, data.y))
     elif isinstance(data, dstv):

@@ -4,6 +4,9 @@
 import sys
 import inspect
 
+def get_type_fullname(obj):
+    return obj.__class__.__module__ + '.' + obj.__class__.__name__
+
 def getmembers(obj, pre_exclude=['__']):
     return [a for a in inspect.getmembers(obj, \
                 lambda a: not inspect.isroutine(a)) \

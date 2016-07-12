@@ -5,6 +5,7 @@ import sys
 import numpy as np
 import pandas as pd
 import dataset
+import util
 
 def summary(data):
     if isinstance(data, dataset.dsxy):
@@ -93,7 +94,8 @@ def _summary(data):
     if data is None:
         return '  data is NONE'
 
-    ret = ['size:', str(data.shape)]
+    ret = ['type:', util.get_type_fullname(data),
+           'size:', str(data.shape)]
 
     if isinstance(data, pd.DataFrame):
         df = data

@@ -4,7 +4,7 @@
 import sys
 import os.path
 #import collections as c
-import wrap
+import settings
 import dataset
 import cache
 import stats
@@ -33,12 +33,20 @@ class FooML(object):
         self._exec = executor.Executor(self._reporter)
         self._target = None
         self._outputs = []
+        self._output_opts = {}
         self._use_data_cache = False
+        self._out_dir = settings.OUT_DIR
 
         self.add_reporter(report.LogReporter())
 
     def add_reporter(self, reporter):
         self._reporter.add_reporter(reporter)
+
+    def report_to(self, md_path):
+        if md_path.endswith('.md'):
+            self.add_reporter(report.MdReporter(md_path))
+        else:
+            raise ValueError('only support Markdown reporter yet')
 
     def use_data(self, data, **kwds):
         name = data
@@ -49,22 +57,22 @@ class FooML(object):
         ds = self._get_data_from_cache(name)
 
         if ds is None:
-            logger.info('cache missed, load original data')
+            self._report('cache missed for data "{}", load original data'.format(name))
             if path is not None:
                 train_path = os.path.join(path, 'train')
                 test_path = os.path.join(path, 'test')
             #ds = dataset.load_image(image_path, target_path, sample_id, target)
             ds_train = dataset.load_image_grouped(train_path, **opt)
             if test_path is not None:
-                ds_test = dataset.load_image_grouped(test_path, **opt)
+                ds_test = dataset.load_image_flat(test_path, **opt)
                 ds = (ds_train, ds_test)
             else:
                 ds_test = None
                 ds = ds_train
             self._set_data_to_cache(name, ds)
-            logger.info('data "%s" is cached' % name)
+            self._report('data "%s" is cached' % name)
         else:
-            logger.info('load data from cache')
+            self._report('load data "{}" from cache'.format(name))
 
         self.add_data(ds, name=name)
 
@@ -91,7 +99,7 @@ class FooML(object):
     def enable_data_cache(self, cache_dir=None):
         self._data_cache = cache.DataCache(cache_dir)
         self._use_data_cache = True
-        logger.info('data cache enabled: %s' % self._data_cache._get_path(''))
+        self._report('data cache enabled: %s' % self._data_cache._get_path(''))
 
     def _get_data_from_cache(self, name):
         if self._use_data_cache:
@@ -101,6 +109,9 @@ class FooML(object):
     def _set_data_to_cache(self, name, data):
         if self._use_data_cache:
             return self._data_cache.set(name, data)
+
+    def get_comp(self, name):
+        return self._comp.get_comp(name)
 
     def add_comp(self, name, acomp, inp, out):
         self._comp.add_comp(name, acomp, inp, out)
@@ -133,7 +144,7 @@ class FooML(object):
             raise TypeError()
 
     def add_inv_trans(self, name, another, input, output):
-        acomp = self._comp.get_comp(another)
+        acomp = self.get_comp(another)
         inv_comp = factory.create_inv_trans(acomp)
         self.add_comp(name, inv_comp, input, output)
         return self
@@ -158,8 +169,10 @@ class FooML(object):
                 self.add_comp_with_creator(i, i, input, FooML.__NULL, factory.create_evaluator)
         return self
 
-    def save_output(self, outs):
-        self._outputs.extend(slist.iter_multi(outs))
+    def save_output(self, outs, path=None, opt={}):
+        self._outputs.extend(slist.iter(outs))
+        for out in slist.iter(outs):
+            self._output_opts[out] = (path, opt)
         return self
 
     def set_target(self, target):
@@ -193,10 +206,25 @@ class FooML(object):
             self._report('Run Testing ...')
             ds = self._get_test_data()
             out = self._exec.run_test(ds, data_keyed=True)
-        print 'final output:\n', out
+
+        self._save_result(out)
 
     def run_train(self):
         return self.run(test=False)
+
+    def _save_result(self, out_data):
+        for i, ds in slist.enumerate(out_data):
+            ds_name = slist.get(self._outputs, i)
+            path, opt = self._get_opt_for_save(ds_name, 'csv')
+            self._report('saving data "{}" to "{}"'.format(ds_name, path))
+            dataset.save_csv(ds, path, opt)
+        #print 'final output:\n', out
+
+    def _get_opt_for_save(self, name, type):
+        path, opt = self._output_opts[name]
+        if not path:
+            path = os.path.join(self._out_dir, name) + '.' + type
+        return path, opt
 
     def _get_test_data(self):
         ds = {}

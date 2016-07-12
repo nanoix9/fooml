@@ -9,6 +9,7 @@ from fooml import dataset
 from fooml.dt import slist
 from fooml import util
 from fooml.log import logger
+from sklearn.preprocessing import LabelEncoder
 
 class SkComp(comp.Comp):
 
@@ -32,8 +33,13 @@ class TargTrans(mixin.TargTransMixin, SkComp):
     def __init__(self, obj):
         super(TargTrans, self).__init__(obj)
         self._fit_func = self._obj.fit
-        self._fit_trans_func = self._obj.fit_transform
         self._trans_func = self._obj.transform
+
+    def _fit_trans_func(self, *args, **kwds):
+        ret = self._obj.fit_transform(*args, **kwds)
+        if isinstance(self._obj, LabelEncoder):
+            logger.info('labels: {}'.format(self._obj.classes_))
+        return ret
 
 class TargInvTrans(mixin.TargTransMixin, SkComp):
 
@@ -58,17 +64,17 @@ class Clf(SkComp):
 
     def fit(self, data):
         X, y = data
-        self._obj.fit(X, y)
+        return self._obj.fit(X, y)
 
     def trans(self, ds):
         X, y = ds
         sy = cy = None
         if self._cal_proba:
             score = self._predict_proba(X)
-            sy = dataset.dssy(score, y)
+            sy = dataset.dssy(score, y, ds.index)
         if self._cal_class:
             cls = self._obj.predict(X)
-            cy = dataset.dscy(cls, y)
+            cy = dataset.dscy(cls, y, ds.index)
 
         if cy is not None and sy is not None:
             return [cy, sy]
@@ -100,7 +106,7 @@ class Dummy(Clf):
         X, y = ds
         if len(X.shape) > 2:
             X = X.reshape(X.shape[0], -1)
-        return Clf.trans(self, (X, y))
+        return Clf.trans(self, dataset.dsxy(X, y, ds.index))
 
 class Eva(mixin.EvaMixin, SkComp):
 

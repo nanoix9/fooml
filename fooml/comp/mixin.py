@@ -21,7 +21,11 @@ class TransMixin(BaseMixin):
         return self._apply(data, self._fit_func)
 
     def fit_trans(self, data):
-        return self._apply(data, self._fit_trans_func)
+        if isinstance(data, dataset.dstv):
+            return dataset.dstv(self._apply(data.train, self._fit_trans_func),
+                    self._apply(data.valid, self._trans_func))
+        else:
+            return self._apply(data, self._fit_trans_func)
 
     def trans(self, data):
         return self._apply(data, self._trans_func)
@@ -44,8 +48,8 @@ class SplitMixin(BaseMixin):
         elif not isinstance(data, dataset.dsxy):
             raise TypeError('data is not dsxy type')
         X, y = data
-        Xt, Xv, yt, yv = self._split(X, y)
-        return dataset.dstv(dataset.dsxy(Xt, yt), dataset.dsxy(Xv, yv))
+        Xt, Xv, yt, yv, it, iv = self._split(X, y, data.index)
+        return dataset.dstv(dataset.dsxy(Xt, yt, it), dataset.dsxy(Xv, yv, iv))
 
     def trans(self, data):
         return data

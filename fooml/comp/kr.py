@@ -31,7 +31,7 @@ class Clf(KerasComp):
 
     def trans(self, data):
         X, y = data
-        return dataset.dssy(self._obj.predict(X), y)
+        return dataset.dssy(self._obj.predict(X), y, data.index)
 
     def fit_trans(self, data):
         if isinstance(data, dataset.dstv):
