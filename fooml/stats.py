@@ -110,7 +110,7 @@ def _summary(data):
     if data is None:
         return '  data is NONE'
 
-    ret = ['type:', util.get_type_fullname(data),
+    ret = ['type: %s' % util.get_type_fullname(data),
            'size: %s' % str(data.shape)]
 
     dtype = None

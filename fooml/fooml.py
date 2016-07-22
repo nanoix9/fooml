@@ -29,8 +29,8 @@ class FooML(object):
         self._err = sys.stderr
         self._ds_train = {}
         self._ds_test = {}
-        #self._comp = comp.Serial()
-        self._comp = graph.CompGraph(name)
+        #self._graph = comp.Serial()
+        self._graph = graph.CompGraph(name)
         self._exec = executor.Executor(self._reporter)
         self._target = None
         self._outputs = []
@@ -129,10 +129,10 @@ class FooML(object):
             return self._data_cache.set(name, data)
 
     def get_comp(self, name):
-        return self._comp.get_comp(name)
+        return self._graph.get_comp(name)
 
     def add_comp(self, name, acomp, inp, out):
-        self._comp.add_comp(name, acomp, inp, out)
+        self._graph.add_comp(name, acomp, inp, out)
         return self
 
     def _add_new_comp(self, name, acomp, inp, out, package=None, args=[], opt={}, comp_opt={}):
@@ -208,24 +208,24 @@ class FooML(object):
 
     def show(self):
         self._report('Fooml description:')
-        self._report('Graph of computing components: %s' % self._comp)
+        self._report('Graph of computing components: %s' % self._graph)
 
     def compile(self):
-        self._comp.set_input(util.key_or_keys(self._ds_train))
-        #self._comp.set_output(self._outputs + [FooML.__NULL])
+        self._graph.set_input(util.key_or_keys(self._ds_train))
+        #self._graph.set_output(self._outputs + [FooML.__NULL])
         if self._outputs:
-            self._comp.set_output(self._outputs)
+            self._graph.set_output(self._outputs)
         else:
-            self._comp.set_output(FooML.__NULL)
+            self._graph.set_output(FooML.__NULL)
 
         self._report('Compiling graph ...')
-        self._exec.compile_graph(self._comp)
+        self._exec.set_graph(self._graph)
 
     def run(self, test=True):
         self.show()
-        self.desc_data()
+        self._exec.show()
 
-        #self.compile()
+        self.desc_data()
 
         self._report('Training ...')
         out = self._exec.run_train(self._ds_train, data_keyed=True)

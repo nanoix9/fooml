@@ -4,7 +4,7 @@
 import sys
 import numpy as np
 
-from comp import StatelessComp
+import comp
 import mixin
 from fooml import dataset
 from fooml.dt import slist
@@ -12,7 +12,7 @@ from fooml import util
 from fooml.log import logger
 
 
-class FunComp(StatelessComp):
+class FunComp(comp.StatelessComp):
 
     def __init__(self, fun_with_arg):
         if isinstance(fun_with_arg, tuple):
