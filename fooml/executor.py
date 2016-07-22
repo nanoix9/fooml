@@ -345,6 +345,7 @@ class Executor(object):
             if c_name == Executor.__OUTPUT__:
                 self._report('Task %d Ouput: assign output results' % curr_task_no)
                 self._report_leveldown()
+                self._desc_data(curr_input, self._graph._out)
                 ret = curr_input
                 self._report_levelup()
             else:

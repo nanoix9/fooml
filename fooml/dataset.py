@@ -107,9 +107,9 @@ class BasicDataset(Dataset):
 def load_data(name, **kwds):
     return load_toy(name, **kwds)
 
-def load_csv(path, target, feature=None, dlm=','):
-    ds = pd.read_csv(path)
-    return dsxy
+def load_csv(path, index_col=None, target=None, feature=None, dlm=','):
+    df = pd.read_csv(path, index_col=index_col)
+    return dsxy(df, None, index=np.array(df.index))
 
 def load_image(image_path, target_path, sample_id, target=None):
     return
@@ -131,7 +131,7 @@ def _get_im_cv2(path, resize=None, color_type=1):
         img = cv2.resize(img, resize)
     return img
 
-def load_image_grouped(image_path, resize=None, file_ext='jpg'):
+def load_image_grouped(image_path, resize=None, color_type=1, file_ext='jpg'):
     X_train = []
     y_train = []
     file_names = []
@@ -143,7 +143,7 @@ def load_image_grouped(image_path, resize=None, file_ext='jpg'):
         logger.info('load folder {}: {} files'.format(j, len(files)))
         for fl in files:
             flbase = os.path.basename(fl)
-            img = _get_im_cv2(fl, resize, color_type=1)
+            img = _get_im_cv2(fl, resize, color_type=color_type)
             X_train.append(img)
             y_train.append(j)
             #file_names.append(fl)
@@ -158,7 +158,7 @@ def load_image_grouped(image_path, resize=None, file_ext='jpg'):
 
     return dsxy(X_train, y_train, index=np.array(file_names))
 
-def load_image_flat(image_path, target=None, resize=None, file_ext='jpg'):
+def load_image_flat(image_path, target=None, resize=None, color_type=1, file_ext='jpg'):
     X_train = []
     #y_train = []
     y_train = None
@@ -169,7 +169,7 @@ def load_image_flat(image_path, target=None, resize=None, file_ext='jpg'):
     logger.info('read images from path {}: {} files'.format(path, len(files)))
     for fl in files:
         flbase = os.path.basename(fl)
-        img = _get_im_cv2(fl, resize, color_type=1)
+        img = _get_im_cv2(fl, resize, color_type=color_type)
         X_train.append(img)
         #y_train.append(j)
         file_names.append(flbase)
@@ -222,11 +222,20 @@ def save_csv(ds, path, opt):
     #print ds
     if isinstance(ds, dssy):
         #print 'score:', ds.score
-        if 'columns' in opt:
-            columns = opt['columns']()
-        pd.DataFrame(ds.score, columns=columns, index=ds.index).to_csv(path)
+        columns = _get_opt(opt, 'columns', False)
+        label = _get_opt(opt, 'label', False)
+        pd.DataFrame(ds.score, columns=columns, index=ds.index).to_csv(path, index_label=label)
     else:
         raise TypeError('Type not supported: {}'.format(util.get_type_fullname(ds)))
+
+def _get_opt(opt, key, default):
+    if key in opt:
+        opt_val = opt[key]
+        if hasattr(opt_val, '__call__'):
+            opt_val = opt_val()
+        return opt_val
+    else:
+        return default
 
 def map(func, data):
     if not isinstance(data, dataset):

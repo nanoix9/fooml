@@ -10,14 +10,14 @@ import util
 from log import logger
 
 
-def create_classifier(name, package='sklearn', args=[], opt={}, comp_opt={}):
-    return create_comp(package, name, args, opt, comp_opt)
+#def create_classifier(name, package='sklearn', args=[], opt={}, comp_opt={}):
+#   return create_comp(package, name, args, opt, comp_opt)
 
-def create_evaluator(name, package='sklearn', args=[], opt={}, comp_opt={}):
-    return create_comp(package, name, args, opt, comp_opt)
+#ef create_evaluator(name, package='sklearn', args=[], opt={}, comp_opt={}):
+#   return create_comp(package, name, args, opt, comp_opt)
 
-def create_trans(name, package=comp.conf.ANY, args=[], opt={}, comp_opt={}):
-    return create_comp(package, name, args, opt, comp_opt)
+#ef create_trans(name, package=comp.conf.ANY, args=[], opt={}, comp_opt={}):
+#   return create_comp(package, name, args, opt, comp_opt)
 
 def create_inv_trans(acomp):
     assert(acomp is not None)
@@ -34,7 +34,10 @@ def obj2comp(obj, comp_opt={}):
     else:
         return comp_class(obj, **comp_opt)
 
-def create_comp(package, name, args, opt, comp_opt):
+def create_comp(name, package=None, args=[], opt={}, comp_opt={}):
+    if package is None:
+        package = comp.conf.ANY
+
     try:
         conf = comp.conf.get_config(package, name)
         opt = util.merge_dict_or_none(opt, conf.opt)
@@ -53,13 +56,13 @@ def create_obj(package, name, args=[], opt={}):
     obj = create_from_str(package, name, args, opt)
     return obj
 
-def create_or_default(package, name, args, opt):
-    try:
-        obj = create_from_str()
-    except KeyError:
-        #raise
-        obj = create_from_str(package, name, args, opt)
-    return obj
+#def create_or_default(package, name, args, opt):
+#    try:
+#        obj = create_from_str()
+#    except KeyError:
+#        #raise
+#        obj = create_from_str(package, name, args, opt)
+#    return obj
 
 def create_from_str(module_name, clazz_name, args, opt):
     module = importlib.import_module(module_name)

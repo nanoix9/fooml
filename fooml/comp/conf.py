@@ -73,6 +73,7 @@ __default_config = {
 
 __sklearn_config = {
         'split': (misc.SplitComp, 'cross_validation', 'train_test_split'),
+        'partsplit': (misc.PartSplitComp, 'cross_validation', 'train_test_split'),
 
         'labelencoder': (sk.TargTrans, 'preprocessing', 'LabelEncoder'),
 

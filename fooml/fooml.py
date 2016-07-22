@@ -23,19 +23,21 @@ class FooML(object):
 
     __NULL = '_'
 
-    def __init__(self):
+    def __init__(self, name='fool'):
+        self._name = name
         self._reporter = report.SeqReporter()
         self._err = sys.stderr
         self._ds_train = {}
         self._ds_test = {}
         #self._comp = comp.Serial()
-        self._comp = graph.CompGraph('main')
+        self._comp = graph.CompGraph(name)
         self._exec = executor.Executor(self._reporter)
         self._target = None
         self._outputs = []
         self._output_opts = {}
         self._use_data_cache = False
         self._out_dir = settings.OUT_DIR
+        self._data_load_routine = []
 
         self.add_reporter(report.LogReporter())
 
@@ -51,6 +53,17 @@ class FooML(object):
     def use_data(self, data, **kwds):
         name = data
         ds = dataset.load_data(data, **kwds)
+        self.add_data(ds, name=name)
+
+    def load_csv(self, name, path, **opt):
+        ds = self._get_data_from_cache(name)
+        if ds is None:
+            self._report('cache missed for data "{}", load original data'.format(name))
+            ds = dataset.load_csv(path, **opt)
+            self._set_data_to_cache(name, ds)
+            self._report('data "%s" is cached' % name)
+        else:
+            self._report('load data "{}" from cache'.format(name))
         self.add_data(ds, name=name)
 
     def load_image_grouped(self, name, path=None, train_path=None, test_path=None, **opt):
@@ -93,16 +106,21 @@ class FooML(object):
             self._ds_train[name] = ds
         #print self._ds_train
 
+    def load_data_now(self):
+        for func in self._data_load_routine:
+            func()
+
     def get_train_data(self, name):
         return self._ds_train[name]
 
     def enable_data_cache(self, cache_dir=None):
-        self._data_cache = cache.DataCache(cache_dir)
+        self._data_cache = cache.DataCache(self._name, cache_dir)
         self._use_data_cache = True
         self._report('data cache enabled: %s' % self._data_cache._get_path(''))
 
     def _get_data_from_cache(self, name):
         if self._use_data_cache:
+            self._report('load from cache: "{}"'.format(name))
             return self._data_cache.get(name)
         return None
 
@@ -117,22 +135,32 @@ class FooML(object):
         self._comp.add_comp(name, acomp, inp, out)
         return self
 
-    def add_comp_with_creator(self, name, acomp, inp, out, creator=None, args=[], opt={}, comp_opt={}):
+    def _add_new_comp(self, name, acomp, inp, out, package=None, args=[], opt={}, comp_opt={}):
         if isinstance(acomp, basestring):
-            if ':' in acomp:
-                package, acomp_name = acomp.split(':')
-                clf = creator(acomp_name, package=package, args=args, opt=opt, comp_opt=comp_opt)
-            else:
-                clf = creator(acomp, args=args, opt=opt, comp_opt=comp_opt)
+            #package, acomp_name = acomp.split(':')
+            c = factory.create_comp(acomp, package=package, args=args, opt=opt, comp_opt=comp_opt)
         elif isinstance(acomp, comp.Comp):
-            clf = acomp
+            c = acomp
         else:
-            clf = factory.obj2comp(acomp, comp_opt)
-        self.add_comp(name, clf, inp, out)
+            c = factory.obj2comp(acomp, comp_opt)
+        self.add_comp(name, c, inp, out)
         return self
 
+    def add_split(self, name, input, output, args=[], opt={}, partition=None, part_key=None):
+        comp_opt = {}
+        if partition is not None:
+            real_inp = slist.to_list(input)
+            real_inp.append(partition)
+            if part_key is not None:
+                comp_opt['part_key'] = part_key
+            spl = factory.create_comp('partsplit', args=args, opt=opt, comp_opt=comp_opt)
+        else:
+            real_inp = input
+            spl = factory.create_comp('split', args=args, opt=opt, comp_opt=comp_opt)
+        self.add_comp(name, spl, real_inp, output)
+
     def add_trans(self, name, acomp, input, output, args=[], opt={}, comp_opt={}):
-        self.add_comp_with_creator(name, acomp, input, output, factory.create_trans, args=args, opt=opt, comp_opt={})
+        self._add_new_comp(name, acomp, input, output, args=args, opt=opt, comp_opt={})
         return self
 
     def add_feat_trans(self, name, obj, input, output, args=[], opt={}, comp_opt={}):
@@ -150,7 +178,7 @@ class FooML(object):
         return self
 
     def add_classifier(self, name, acomp, input, output=__NULL, proba=None):
-        self.add_comp_with_creator(name, acomp, input, output, factory.create_classifier, comp_opt=dict(proba=proba))
+        self._add_new_comp(name, acomp, input, output, package='sklearn', comp_opt=dict(proba=proba))
         return self
 
     def add_nn(self, name, nn, input, output=__NULL, train_opt={}):
@@ -166,7 +194,7 @@ class FooML(object):
             for i in slist.iter_multi(indic):
                 #eva = factory.create_evaluator(i)
                 #self.add_comp(i, eva, input, FooML.__NULL)
-                self.add_comp_with_creator(i, i, input, FooML.__NULL, factory.create_evaluator)
+                self._add_new_comp(i, i, input, FooML.__NULL)
         return self
 
     def save_output(self, outs, path=None, opt={}):
@@ -207,13 +235,15 @@ class FooML(object):
             ds = self._get_test_data()
             out = self._exec.run_test(ds, data_keyed=True)
 
-        self._save_result(out)
+        if len(self._outputs) > 0:
+            self._save_result(out)
 
     def run_train(self):
         return self.run(test=False)
 
     def _save_result(self, out_data):
         for i, ds in slist.enumerate(out_data):
+            #print i, ds
             ds_name = slist.get(self._outputs, i)
             path, opt = self._get_opt_for_save(ds_name, 'csv')
             self._report('saving data "{}" to "{}"'.format(ds_name, path))
@@ -232,7 +262,7 @@ class FooML(object):
             if self._ds_test.get(k, None) is not None:
                 ds[k] = self._ds_test[k]
             else:
-                ds[k] = dataset.dsxy(v.X, None)
+                ds[k] = dataset.dsxy(v.X, None, v.index)
         return ds
 
     def desc_data(self):
@@ -270,7 +300,7 @@ class FooML(object):
 
 
 def __test1():
-    foo = FooML()
+    foo = FooML('__test1')
     foo.add_reporter(report.MdReporter('report.md'))
     data_name = 'digits'
     data_name = 'iris'

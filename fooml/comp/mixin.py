@@ -54,6 +54,28 @@ class SplitMixin(BaseMixin):
     def trans(self, data):
         return data
 
+class PartSplitMixin(SplitMixin):
+
+    def fit_trans(self, data):
+        if isinstance(data, list):
+            main_data = data[0]
+            partition = data[1]
+        else:
+            raise TypeError()
+
+        if isinstance(main_data, dataset.dstv):
+            return main_data
+        elif not isinstance(main_data, dataset.dsxy):
+            raise TypeError('data is not dsxy type')
+        if not isinstance(partition, dataset.dsxy):
+            raise TypeError('partition is not dsxy type')
+        X, y = main_data
+        Xt, Xv, yt, yv, it, iv = self._split(X, y, main_data.index, partition.X, partition.index, by=None)
+        return dataset.dstv(dataset.dsxy(Xt, yt, it), dataset.dsxy(Xv, yv, iv))
+
+    def trans(self, data):
+        return data[0]
+
 #class ClassifierMixin(BaseMixin):
 #
 #    #def fit(self, data):
