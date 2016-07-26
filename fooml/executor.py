@@ -36,15 +36,13 @@ class Executor(object):
             logger.warning('no graph is compiled yet')
             return
 
-        self._report('task sequence:\n%s' % util.indent(self._cgraph.str_task_seq(), 8))
+        self._report('Executor for tasks:')
+        #print str(self._cgraph)
+        self._report(str(self._cgraph))
 
-        self._report(['OI mapping:', \
-                ['%d. %s: %s' % (i, k, self._cgraph._oimap_named[k]) \
-                    for i, (k, _) in enumerate(self._cgraph._task_seq) \
-                    if k in self._cgraph._oimap_named]])
-
-        self._report(['OI map indexed:', \
-                ['%d: %s' % (i, oi) for i, oi in enumerate(self._cgraph._oimap)]])
+    def __str__(self):
+        return '%s(\n%s\n)' % (util.get_type_fullname(self), \
+                util.indent(str(self._cgraph), 2))
 
     def _desc_data(self, data, names):
         if isinstance(names, (list, tuple)):
@@ -114,10 +112,10 @@ class Executor(object):
             #    % (fname, acomp.name))
             ## TODO: refact this
             #out = self._train_comp(acomp, data)
-            pass
+            raise NotImplementedError()
         elif isinstance(acomp, comp.Comp):
             #print acomp
-            self._report('run "%s" on basic component:\n%s' \
+            self._report('run "%s" on component:\n%s' \
                     % (fname, util.indent(repr(acomp))))
             out = func(acomp, data)
         else:
@@ -228,9 +226,33 @@ def test_exec():
     exe.show()
     exe.run_train(data)
 
+def test_nest():
+    import comp.group as group
+    gcomp = graph.CompGraph('test_graph', inp=['input', 'x'], out='y')
+    gcomp.add_comp('c1', comp.PassComp(), 'x', 'u')
+    gcomp.add_comp('c2', comp.ConstComp(1), ['input', 'u'], 'z')
+
+    gsub1 = graph.CompGraph('subgraph1', inp='s1', out='y1')
+    gsub1.add_comp('c31', comp.PassComp(), 's1', 'y1')
+    esub = Executor(report.LogReporter())
+    esub.set_graph(gsub1)
+    print gsub1
+
+    gcomp.add_comp('c3', group.Seq(esub), 'z', 'y')
+    print gcomp
+
+    exe = Executor(report.LogReporter())
+    exe.set_graph(gcomp)
+
+    data = [(11,22), {'a':100, 10:200}]
+    #exe.run_train(data, gcomp)
+    exe.show()
+    exe.run_train(data)
+
+
 def main():
-    #test_maybe_list()
-    test_exec()
+    #test_exec()
+    test_nest()
     return
 
 if __name__ == '__main__':

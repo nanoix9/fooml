@@ -84,7 +84,7 @@ class CompGraph(object):
                 (self.__class__.__name__, self._inp, self._out, \
                  self._graph.nodes(), \
                  self._str_edges_with_attr(), \
-                 util.indent(self._str_comps(), 1, '\t  '))
+                 util.indent(self._str_comps(), 2, '  '))
 
     def _str_edges_with_attr(self, attr='name'):
         return str(self._edges_with_attr(attr=attr))
@@ -313,6 +313,22 @@ class _CompiledGraph(object):
         else:
             i_name = slist.get(self._task_seq[c][1].inp, i)
         return 'input%s:"%s"' % (slist.str_index(i), i_name)
+
+    def __str__(self):
+
+        return util.joins([
+                'task sequence:',
+                util.indent(self.str_task_seq(), 2),
+
+                'OI mapping:',
+                ['%d. %s: %s' % (i, k, self._oimap_named[k]) \
+                    for i, (k, _) in enumerate(self._task_seq) \
+                    if k in self._oimap_named],
+
+                'OI map indexed:',
+                ['%d: %s' % (i, oi) for i, oi in enumerate(self._oimap)]
+            ])
+
 
 
 def test_graph():

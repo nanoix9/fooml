@@ -19,6 +19,20 @@ def indent(s, ind=2, prefix=' '):
     #print prefix + s.replace('\n', '\n' + prefix)
     return str_ind + s.replace('\n', '\n' + str_ind)
 
+def joins(str_list, sep='\n', ind=2):
+    ll = []
+    for s in str_list:
+        #print s
+        if isinstance(s, basestring):
+            ll.append(s)
+        elif isinstance(s, (list, tuple)):
+            ll.append(indent(joins(s, sep, ind), ind))
+        else:
+            raise TypeError('element must be basestring, list or tuple')
+    #print ll
+    #sys.exit()
+    return sep.join(ll)
+
 ############ for dict ############
 def merge_dict_or_none(*dict_args):
     '''

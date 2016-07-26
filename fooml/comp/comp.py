@@ -4,6 +4,7 @@
 import sys
 import inspect
 from fooml.log import logger
+from fooml import util
 
 
 class Comp(object):
@@ -17,9 +18,10 @@ class Comp(object):
     def __repr__(self):
         full_name = self.__class__.__module__ + '.' + self.__class__.__name__
         if type(self._obj) == type(lambda: 0):
-            desc = '%s(\n  func=%s)' % (full_name, (str(self._obj.__name__)))
+            desc = 'func=%s' % (str(self._obj.__name__))
         else:
-            desc = '%s(\n  obj=%s)' % (full_name, (str(self._obj)))
+            desc = 'obj=%s' % (str(self._obj))
+        desc = '%s(\n%s)' % (full_name, util.indent(desc, 2))
         return desc
         #return '%s(obj=%s)' % (self.__class__.__name__, self._obj)
 
