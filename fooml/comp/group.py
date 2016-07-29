@@ -5,22 +5,19 @@ import sys
 import comp
 
 
-class Group(comp.Comp):
-    pass
-
 class ExecMixin(object):
 
     def set_exec(self, e):
-        self._obj = e
+        self._exec = e
 
     #def set_graph(self, graph):
-    #    self._obj.set_graph(graph)
+    #    self._exec.set_graph(graph)
 
     def _fit_trans_impl(self, data):
-        return self._obj.run_train(data)
+        return self._exec.run_train(data)
 
     def _trans_impl(self, data):
-        return self._obj.run_test(data)
+        return self._exec.run_test(data)
 
 class SeqMixin(object):
 
@@ -43,15 +40,12 @@ class LoopMixin(object):
     def _loop(self, data):
         raise NotImplementedError()
 
-class Seq(SeqMixin, ExecMixin, Group):
+class Seq(SeqMixin, ExecMixin, comp.Comp):
 
     def __init__(self, e):
+        super(Seq, self).__init__(e)
         self.set_exec(e)
 
-class Loop(LoopMixin, ExecMixin, Group):
-
-    def __init__(self, e):
-        self.set_exec(e)
 
 def main():
     return

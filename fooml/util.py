@@ -20,6 +20,9 @@ def indent(s, ind=2, prefix=' '):
     return str_ind + s.replace('\n', '\n' + str_ind)
 
 def joins(str_list, sep='\n', ind=2):
+    if isinstance(str_list, basestring):
+        return str_list
+
     ll = []
     for s in str_list:
         #print s

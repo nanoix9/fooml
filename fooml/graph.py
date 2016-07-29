@@ -80,14 +80,14 @@ class CompGraph(object):
         return self.get_comp_entry(name).comp
 
     def __str__(self):
-        return '%s:\n  Input:  %s,\n  Output: %s,\n  Nodes:  %s,\n  Edges:  %s,\n  Components:\n%s' % \
-                (self.__class__.__name__, self._inp, self._out, \
+        return '%s: %s\n  Input:  %s,\n  Output: %s,\n  Nodes:  %s,\n  Edges:\n%s,\n  Components:\n%s' % \
+                (self.__class__.__name__, self.name, self._inp, self._out, \
                  self._graph.nodes(), \
-                 self._str_edges_with_attr(), \
+                 util.indent(self._str_edges_with_attr(), 4), \
                  util.indent(self._str_comps(), 2, '  '))
 
     def _str_edges_with_attr(self, attr='name'):
-        return str(self._edges_with_attr(attr=attr))
+        return util.joins(self._pretty_edge(e) for e in self._edges_with_attr(attr=attr))
 
     def _edges_with_attr(self, nbunch=None, attr='name'):
         if isinstance(attr, (list, tuple)):
@@ -96,6 +96,9 @@ class CompGraph(object):
             get = lambda f, t, attr: (self._graph[f][t][attr],)
         ls = [(f, t) + get(f, t, attr) for f, t in self._graph.edges_iter(nbunch=nbunch)]
         return ls
+
+    def _pretty_edge(self, e):
+        return '%s --> %s: %s' % (e[0], e[1], str(e[2:]))
 
     def _str_comps(self):
         slist = []
@@ -317,6 +320,7 @@ class _CompiledGraph(object):
     def __str__(self):
 
         return util.joins([
+                '%s: %s' % (self.__class__.__name__, self._graph.name),
                 'task sequence:',
                 util.indent(self.str_task_seq(), 2),
 

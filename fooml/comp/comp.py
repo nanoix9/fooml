@@ -21,6 +21,9 @@ class Comp(object):
             desc = 'func=%s' % (str(self._obj.__name__))
         else:
             desc = 'obj=%s' % (str(self._obj))
+        extr_desc = self._extr_desc()
+        if extr_desc:
+            desc = desc + '\n' + extr_desc
         desc = '%s(\n%s)' % (full_name, util.indent(desc, 2))
         return desc
         #return '%s(obj=%s)' % (self.__class__.__name__, self._obj)
@@ -34,6 +37,9 @@ class Comp(object):
     def fit_trans(self, data):
         self.fit(data)
         return self.trans(data)
+
+    def _extr_desc(self):
+        return ''
 
 class LambdaComp(Comp):
 

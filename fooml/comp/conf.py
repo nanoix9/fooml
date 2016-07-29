@@ -48,6 +48,9 @@ def get_comp_class(module, name):
 def get_inv_comp_class(module, name):
     return __get_from_config(__inv_comp_conf, module, name)
 
+def instant(name):
+    return not name in __no_instant_set
+
 def __get_from_config(config, module, name):
     def _get_default(d, k):
         if k in d:
@@ -85,6 +88,10 @@ __sklearn_config = {
         'AUC': (sk.Eva, 'metrics', 'roc_auc_score'),
         'logloss': (sk.Eva, 'metrics', 'log_loss'),
         'report': (sk.Eva, 'metrics', 'classification_report'),
+
+        'kfold': (sk.CV, 'cross_validation', 'KFold'),
+        'stratifiedkfold': (sk.CV, 'cross_validation', 'StratifiedKFold'),
+        'labelkfold': (sk.CV, 'cross_validation', 'LabelKFold'),
         }
 
 __keras_config = {
@@ -117,6 +124,11 @@ __inv_comp_conf = {
                 }
             }
         }
+
+__no_instant_set = set([
+        'KFold',
+        'StratifiedKFold',
+        'LabelKFold'])
 
 
 def main():

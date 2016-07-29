@@ -10,15 +10,6 @@ import util
 from log import logger
 
 
-#def create_classifier(name, package='sklearn', args=[], opt={}, comp_opt={}):
-#   return create_comp(package, name, args, opt, comp_opt)
-
-#ef create_evaluator(name, package='sklearn', args=[], opt={}, comp_opt={}):
-#   return create_comp(package, name, args, opt, comp_opt)
-
-#ef create_trans(name, package=comp.conf.ANY, args=[], opt={}, comp_opt={}):
-#   return create_comp(package, name, args, opt, comp_opt)
-
 def create_inv_trans(acomp):
     assert(acomp is not None)
     comp_class = comp.conf.get_inv_comp_class(acomp.__class__.__module__, acomp.__class__.__name__)
@@ -71,7 +62,7 @@ def create_from_str(module_name, clazz_name, args, opt):
     except:
         logger.error('no class "%s" in module "%s"' % (clazz_name, module_name))
         raise
-    if inspect.isclass(clazz):
+    if inspect.isclass(clazz) and comp.conf.instant(clazz_name):
         obj = clazz(*args, **opt)
     elif hasattr(clazz, '__call__'):
         obj = clazz, args, opt

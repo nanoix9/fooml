@@ -6,6 +6,7 @@ import numpy as np
 
 import comp
 import mixin
+import group
 from fooml import dataset
 from fooml.dt import slist
 from fooml import util
@@ -116,42 +117,23 @@ class SplitComp(mixin.SplitMixin, FunComp):
 
 class PartSplitComp(mixin.PartSplitMixin, FunComp):
 
-    def __init__(self, fun_with_arg, part_key=lambda x:x):
+    def __init__(self, fun_with_arg, part_key=lambda x:x, obj_return_value=True):
         super(PartSplitComp, self).__init__(fun_with_arg)
         self._fit_func = None
         self._part_key = part_key
+        self._obj_return_value = obj_return_value
 
-    def _split(self, X, y, index, partition, part_index, by=None):
-        key_list = np.array(self._part_key(partition))
-        if key_list.shape[0] != part_index.shape[0]:
-            raise RuntimeError('key and index are not same size')
-        keys = np.unique(key_list)
+    def _get_labels(self, data, partition):
+        return np.array(self._part_key(partition.X)), partition.index
+
+    def _split_labels_index(self, labels):
+        keys = np.unique(labels)
         self._log_func()
         tk, vk = self._obj(keys, *self._args, **self._opt)
-        #print tk, vk
-        v_idx_set = set()
-        vk_set = set(vk)
-        #print key_list
-        #print vk_set
-        for i, idx in enumerate(part_index):
-            if key_list[i] in vk_set:
-                v_idx_set.add(idx)
-        #print index
-        #print index.shape
-        iv = np.tile(False, index.shape)
-        #print iv
-        #print iv.shape
-        for i, idx in enumerate(index):
-            if idx in v_idx_set:
-                iv[i] = True
-        it = np.logical_not(iv)
-        #print iv
-        #print it
-        Xv = X[iv]; yv = y[iv]; vidx = index[iv]
-        Xt = X[it]; yt = y[it]; tidx = index[it]
-        #print yv, vidx
-        #print yt, tidx
-        return Xt, Xv, yt, yv, tidx, vidx
+        if self._obj_return_value:
+            tk = self._value_to_index(tk, labels)
+            vk = self._value_to_index(vk, labels)
+        return tk, vk
 
 
 class ScoreComp(DsTransComp):

@@ -19,6 +19,7 @@ import fooml
 from fooml import dataset
 from fooml import util
 
+cv = True
 #img_size=(64, 64)
 img_size = (224, 224)
 color_type = 1
@@ -99,34 +100,46 @@ def main(test):
     pred = 'y_pred'
     proba = 'y_proba' + data_suffix
 
-    #data_split = 'data_split'
-    #foo.add_trans('split', 'split', input=data_reshape, output=data_split, opt=dict(test_size=0.2))
-    #foo.add_split('split', input=data_reshape, output=data_split, \
-    #        partition='driver_id', part_key=lambda df: df.subject, opt=dict(test_size=0.2))
-    data_split = data_reshape
-
-    #foo.add_classifier('rand', 'random', input=data_reshape, output=[pred, proba], proba='with')
-    #model = create_model_v1(img_size, color_type)
-    #model = create_model_v2(img_size, color_type)
-    #model = vgg_std16_model(img_size, color_type)
     model = vgg_19()
     model.summary()
-
     callbacks = [
-            EarlyStopping(monitor='val_loss', patience=2, verbose=0),
-            ]
-    foo.add_nn('nn', model, input=data_split, output=proba,
-            train_opt=dict(batch_size=batch_size, nb_epoch=nb_epoch, \
-                    verbose=1, shuffle=True, callbacks=callbacks))
-    #pred = data_name_labeled
+                EarlyStopping(monitor='val_loss', patience=2, verbose=0),
+                ]
+    train_opt=dict(batch_size=batch_size, nb_epoch=nb_epoch, \
+            verbose=1, shuffle=True, callbacks=callbacks)
+    if not cv:
+        data_split = 'data_split'
+        #foo.add_trans('split', 'split', input=data_reshape, output=data_split, opt=dict(test_size=0.2))
+        foo.add_split('split', input=data_reshape, output=data_split, \
+                partition='driver_id', part_key=lambda df: df.subject, opt=dict(test_size=0.2))
+        #data_split = data_reshape
 
-    foo.evaluate('logloss', input=proba)
+        #foo.add_classifier('rand', 'random', input=data_reshape, output=[pred, proba], proba='with')
+        #model = create_model_v1(img_size, color_type)
+        #model = create_model_v2(img_size, color_type)
+        #model = vgg_std16_model(img_size, color_type)
 
-    #foo.add_inv_trans('invle', 'le', input=pred, output='y_pred_format')
+        callbacks = [
+                EarlyStopping(monitor='val_loss', patience=2, verbose=0),
+                ]
+        foo.add_nn('nn', model, input=data_split, output=proba, train_opt=train_opt)
+        #pred = data_name_labeled
 
-    classes = lambda: foo.get_comp('le')._obj.classes_
-    #foo.save_output(proba, path=sys.stdout, opt=dict(columns=classes))
-    foo.save_output(proba, opt=dict(label='img', columns=classes))
+        foo.evaluate('logloss', input=proba)
+
+        #foo.add_inv_trans('invle', 'le', input=pred, output='y_pred_format')
+
+        classes = lambda: foo.get_comp('le')._obj.classes_
+        #foo.save_output(proba, path=sys.stdout, opt=dict(columns=classes))
+        foo.save_output(proba, opt=dict(label='img', columns=classes))
+    else:
+        sub = foo.submodel('cv', input=data_reshape, output='logloss')
+        sub.add_nn('nn', model, input=data_reshape, output=proba, train_opt=train_opt)
+        sub.evaluate('logloss', input=proba, output='logloss')
+
+        foo.cross_validate(sub, k=2, type='labelkfold', \
+                label='driver_id', label_key=lambda df: df.subject, \
+                use_dstv=True)
 
     foo.show()
     foo.desc_data()

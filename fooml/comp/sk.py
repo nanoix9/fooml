@@ -5,6 +5,7 @@ import sys
 import numpy as np
 import comp
 import mixin
+import group
 from fooml import dataset
 from fooml.dt import slist
 from fooml import util
@@ -67,6 +68,7 @@ class Clf(SkComp):
         return self._obj.fit(X, y)
 
     def trans(self, ds):
+        assert(isinstance(ds, dataset.dsxy))
         X, y = ds
         sy = cy = None
         if self._cal_proba:
@@ -119,8 +121,93 @@ class Eva(mixin.EvaMixin, SkComp):
     def _cal_func(self, y, score):
         return self._obj(y, score, *self.args, **self.opt)
 
+class CV(group.ExecMixin, mixin.PartSplitMixin, SkComp):
+
+    def __init__(self, obj, k=5, exe=None, \
+            label=None, label_key=lambda x:x,
+            use_dstv=False):
+        func, args, opt = obj
+        super(CV, self).__init__(func)
+        self.type = func.__name__
+        self.k = k
+        self._label = label
+        self._label_key = label_key
+        self._use_dstv = use_dstv
+        if exe is not None:
+            self.set_exec(exe)
+
+    def fit_trans(self, data):
+        if not isinstance(data, dataset.dsxy) \
+                and not all(isinstance(d, dataset.dsxy) for d in data):
+            raise TypeError('data must be dsxy or list of dsxy, got: %s' % util.get_type_fullname(data))
+        out = []
+        out_names = self._exec._cgraph._graph._out
+        for i, ds in enumerate(self._iter_split(data)):
+            logger.info('cross validation: %d/%d' % (i+1, self.k))
+            if self._use_dstv:
+                ret_train = self._exec.run_train(ds)
+                ret_test = None
+            else:
+                ret_train = self._exec.run_train(ds.train)
+                ret_test = self._exec.run_test(ds.valid)
+
+            res_list = []
+            res_list.append('training result:')
+            def _format(res):
+                return ['%s:\n%s' % (slist.get(out_names, i), util.indent(str(r), 2)) \
+                        for i, r in slist.enumerate(res)]
+            res_list.append(_format(ret_train))
+            if ret_test is not None:
+                res_list.append('testing result:')
+                res_list.append(_format(ret_test))
+            outi = []
+            outi.append('cross validation round %d' % (i+1))
+            outi.append(res_list)
+            out.append(outi)
+        return dataset.desc(out)
+
+    def trans(self, data):
+        main_data, _ = self._get_main_and_labels(data)
+        return self._exec.run_test(main_data)
+
+    def _get_labels(self, data, label_data):
+        if self._label is None:
+            return data.y, data.index
+        else:
+            return np.array(self._label_key(label_data.X)), label_data.index
+
+    def _split_labels_index(self, labels):
+        return self._get_iter(labels)
+
+    def _get_iter(self, data):
+        print data
+        if self.type == 'KFold':
+            return self._obj(len(data), self.k)
+        elif self.type == 'StratifiedKFold':
+            return self._obj(data, self.k)
+        elif self.type == 'LabelKFold':
+            return self._obj(data, self.k)
+        else:
+            raise RuntimeError()
+
+    def _extr_desc(self):
+        return 'num folds: %d\nsubmodel:\n%s' % \
+                (self.k, util.indent(str(self._exec), 2))
+
+
+def _test_split():
+    import sklearn.cross_validation as cv
+    c = CV((cv.KFold, [], {}), exe=lambda:0)
+    d = dataset.dsxy(np.arange(10, 15), np.arange(1, 6))
+    c._exec._cgraph = lambda:0
+    c._exec._cgraph._graph = lambda:0
+    c._exec._cgraph._graph._out = 'out'
+    c._exec.run_train = lambda *x: 1001
+    c._exec.run_test = lambda *x: 1002
+    print c.fit_trans(d)
 
 def main():
+    _test_split()
     return
 
 if __name__ == '__main__':

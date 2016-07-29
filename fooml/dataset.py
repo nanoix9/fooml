@@ -90,7 +90,7 @@ class desc(dataset):
         self.desc = desc
 
     def __repr__(self):
-        return str(self.desc)
+        return util.joins(self.desc, sep='\n', ind=2)
 
 class Dataset(object):
 
@@ -300,6 +300,16 @@ def get_train(data):
         raise TypeError('Unknown dataset type: %s' % data.__class__)
     return X_train, y_train
 
+def split(data, it, iv):
+    if not isinstance(data, dsxy):
+        raise TypeError()
+    X, y = data
+    index = data.index
+    if index is None:
+        index = np.arange(X.shape[0])
+    Xt = X[it]; yt = y[it]; tidx = index[it]
+    Xv = X[iv]; yv = y[iv]; vidx = index[iv]
+    return dstv(dsxy(Xt, yt, tidx), dsxy(Xv, yv, vidx))
 
 
 ######### Tests ########
