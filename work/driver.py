@@ -4,16 +4,14 @@
 import sys
 sys.path.append("./")
 
-from sklearn.cross_validation import train_test_split
-from sklearn.cross_validation import KFold
-from keras.models import Sequential
-from keras.layers.core import Dense, Dropout, Activation, Flatten
-from keras.layers.convolutional import Convolution2D, MaxPooling2D, ZeroPadding2D
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 
+#from keras.models import Sequential
+#from keras.layers.core import Dense, Dropout, Activation, Flatten
+#from keras.layers.convolutional import Convolution2D, MaxPooling2D, ZeroPadding2D
 # from keras.layers.normalization import BatchNormalization
 from keras.optimizers import SGD, Adam
-from keras.models import model_from_json
+#from keras.models import model_from_json
 
 import fooml
 from fooml import dataset
@@ -109,14 +107,17 @@ def main(test):
     #model = create_model_v1(img_size, color_type)
     #model = create_model_v2(img_size, color_type)
     #model = vgg_std16_model(img_size, color_type)
-    model = vgg_19()
-    model.summary()
+    #model = vgg_19()
+    #model.summary()
     callbacks = [
                 EarlyStopping(monitor='val_loss', patience=2, verbose=0),
                 ]
     train_opt=dict(batch_size=batch_size, nb_epoch=nb_epoch, \
             verbose=1, shuffle=True, callbacks=callbacks)
-    nncls = fooml.nnet('nncls', model, train_opt=train_opt)
+    #nncls = fooml.nnet('nncls', model, train_opt=train_opt)
+    nncls = fooml.nnet('nncls', 'vgg19', \
+            opt=dict(nb_class=10, weight_path='/vola1/scndof/model/vgg19_weights.h5'), \
+            train_opt=train_opt)
     logloss = fooml.evaluator('logloss')
     if not do_cv:
         data_split = 'data_split'
@@ -214,153 +215,6 @@ def create_model_v2(img_size, color_type=1):
     model.compile(loss='categorical_crossentropy', optimizer='adadelta', metrics=['accuracy'])
     #model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
     #model.compile(Adam(lr=1e-3), loss='categorical_crossentropy', metrics=['accuracy'])
-    return model
-
-def vgg_std16_model(img_size, color_type=1):
-    img_rows, img_cols = img_size
-
-    model = Sequential()
-    model.add(ZeroPadding2D((1, 1), input_shape=(color_type,
-                                                 img_rows, img_cols)))
-    model.add(Convolution2D(64, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(64, 3, 3, activation='relu'))
-    model.add(MaxPooling2D((2, 2), strides=(2, 2)))
-
-    model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(128, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(128, 3, 3, activation='relu'))
-    model.add(MaxPooling2D((2, 2), strides=(2, 2)))
-
-    model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(256, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(256, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(256, 3, 3, activation='relu'))
-    model.add(MaxPooling2D((2, 2), strides=(2, 2)))
-
-    model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
-    model.add(MaxPooling2D((2, 2), strides=(2, 2)))
-
-    model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
-    model.add(MaxPooling2D((2, 2), strides=(2, 2)))
-
-    model.add(Flatten())
-    model.add(Dense(4096, activation='relu'))
-    model.add(Dropout(0.5))
-    model.add(Dense(4096, activation='relu'))
-    model.add(Dropout(0.5))
-    model.add(Dense(1000, activation='softmax'))
-
-    #print model.summary()
-    #w1 = model.get_weights()
-    model.load_weights('/vola1/scndof/model/vgg16_weights.h5')
-    #print model.summary()
-    #w2 = model.get_weights()
-    #print '----------------'
-    #sys.exit(-1)
-
-    # Code above loads pre-trained data and
-    #model.layers.pop()
-    util.pop_layer(model)
-    model.add(Dense(10, activation='softmax'))
-    # Learning rate is changed to 0.001
-    sgd = SGD(lr=1e-3, decay=1e-6, momentum=0.9, nesterov=True)
-    model.compile(optimizer=sgd, loss='categorical_crossentropy', metrics=['accuracy'])
-    #model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-    #model.compile(Adam(lr=1e-3), loss='categorical_crossentropy', metrics=['accuracy'])
-    #model.compile(optimizer='adadelta', loss='categorical_crossentropy', metrics=['accuracy'])
-
-    #w3 = model.get_weights()
-    #print w2[1]
-    #print '----------------'
-    #print w3[1]
-    #print '================'
-    #print w2[8]
-    #print '----------------'
-    #print w3[8]
-    #for i in range(len(w1)):
-    #    print '=============='
-    #    print '==== %d =====' % i
-    #    print w1[i] - w2[i]
-    #    print '--------------'
-    #    print w2[i] - w3[i]
-    #    print '=============='
-    #sys.exit(-1)
-    return model
-
-
-def vgg_19(weights_path=None):
-    model = Sequential()
-    model.add(ZeroPadding2D((1,1),input_shape=(3,224,224)))
-    model.add(Convolution2D(64, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D((1,1)))
-    model.add(Convolution2D(64, 3, 3, activation='relu'))
-    model.add(MaxPooling2D((2,2), strides=(2,2)))
-
-    model.add(ZeroPadding2D((1,1)))
-    model.add(Convolution2D(128, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D((1,1)))
-    model.add(Convolution2D(128, 3, 3, activation='relu'))
-    model.add(MaxPooling2D((2,2), strides=(2,2)))
-
-    model.add(ZeroPadding2D((1,1)))
-    model.add(Convolution2D(256, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D((1,1)))
-    model.add(Convolution2D(256, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D((1,1)))
-    model.add(Convolution2D(256, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D((1,1)))
-    model.add(Convolution2D(256, 3, 3, activation='relu'))
-    model.add(MaxPooling2D((2,2), strides=(2,2)))
-
-    model.add(ZeroPadding2D((1,1)))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D((1,1)))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D((1,1)))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D((1,1)))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
-    model.add(MaxPooling2D((2,2), strides=(2,2)))
-
-    model.add(ZeroPadding2D((1,1)))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D((1,1)))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D((1,1)))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
-    model.add(ZeroPadding2D((1,1)))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
-    model.add(MaxPooling2D((2,2), strides=(2,2)))
-
-    model.add(Flatten())
-    model.add(Dense(4096, activation='relu'))
-    model.add(Dropout(0.5))
-    model.add(Dense(4096, activation='relu'))
-    model.add(Dropout(0.5))
-    model.add(Dense(1000, activation='softmax'))
-
-    model.load_weights('/vola1/scndof/model/vgg19_weights.h5')
-
-    util.pop_layer(model)
-    model.add(Dense(10, activation='softmax'))
-
-    sgd = SGD(lr=1e-3, decay=1e-6, momentum=0.9, nesterov=True)
-    model.compile(optimizer=sgd, loss='categorical_crossentropy', metrics=['accuracy'])
-
     return model
 
 if __name__ == '__main__':

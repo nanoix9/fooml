@@ -72,6 +72,9 @@ def __get_from_config(config, module, name):
 __default_config = {
         'binclass': (misc.TargTransComp, 'fooml.proc', 'binclass'),
         'decide': (misc.DecideComp, 'fooml.proc', 'decide'),
+
+        'vgg19': (kr.Clf, 'fooml.comp.special', 'vgg19'),
+        'vgg16': (kr.Clf, 'fooml.comp.special', 'vgg16'),
         }
 
 __sklearn_config = {

@@ -316,11 +316,10 @@ def inv_trans(name, another):
 def classifier(name, acomp, package='sklearn', proba=None):
     return new_comp(name, acomp, package=package, comp_opt=dict(proba=proba))
 
-def nnet(name, nn, train_opt={}):
+def nnet(name, nn, opt={}, train_opt={}):
     ''' Add nerual networks '''
 
-    acomp = factory.obj2comp(nn, comp_opt=dict(train_opt=train_opt))
-    return new_comp(name, acomp)
+    return new_comp(name, nn, opt=opt, comp_opt=dict(train_opt=train_opt))
 
 def evaluator(name, acomp=None):
     if acomp is None:

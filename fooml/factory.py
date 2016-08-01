@@ -4,6 +4,7 @@
 import sys
 import comp
 import comp.conf
+import comp.special
 import importlib
 import inspect
 import util
@@ -44,7 +45,10 @@ def create_obj(package, name, args=[], opt={}):
     #obj = create_or_default(package, name, args, opt)
     logger.info('create object "%s(%s)" with "args=%s, opt=%s"' % \
             (name, package, str(args), str(opt)))
-    obj = create_from_str(package, name, args, opt)
+    if package == 'fooml.comp.special':
+        obj = getattr(comp.special, name)(*args, **opt)
+    else:
+        obj = create_from_str(package, name, args, opt)
     return obj
 
 #def create_or_default(package, name, args, opt):
