@@ -79,6 +79,10 @@ class CompGraph(object):
     def get_comp(self, name):
         return self.get_comp_entry(name).comp
 
+    def iter_comps(self):
+        for name, entry in self._comps.iteritems():
+            yield name, entry.comp
+
     def __str__(self):
         return '%s: %s\n  Input:  %s,\n  Output: %s,\n  Nodes:  %s,\n  Edges:\n%s,\n  Components:\n%s' % \
                 (self.__class__.__name__, self.name, self._inp, self._out, \

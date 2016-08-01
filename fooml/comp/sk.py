@@ -143,7 +143,8 @@ class CV(group.ExecMixin, mixin.PartSplitMixin, SkComp):
         out = []
         out_names = self._exec._cgraph._graph._out
         for i, ds in enumerate(self._iter_split(data)):
-            logger.info('cross validation: %d/%d' % (i+1, self.k))
+            logger.info('cross validation round %d out of %d: %d(train)/%d(test) samples' \
+                    % (i+1, self.k, ds.train.nsamples(), ds.valid.nsamples()))
             if self._use_dstv:
                 ret_train = self._exec.run_train(ds)
                 ret_test = None
@@ -161,7 +162,7 @@ class CV(group.ExecMixin, mixin.PartSplitMixin, SkComp):
                 res_list.append('testing result:')
                 res_list.append(_format(ret_test))
             outi = []
-            outi.append('cross validation round %d' % (i+1))
+            outi.append('cross validation %d' % (i+1))
             outi.append(res_list)
             out.append(outi)
         return dataset.desc(out)
@@ -180,7 +181,7 @@ class CV(group.ExecMixin, mixin.PartSplitMixin, SkComp):
         return self._get_iter(labels)
 
     def _get_iter(self, data):
-        print data
+        #print data
         if self.type == 'KFold':
             return self._obj(len(data), self.k)
         elif self.type == 'StratifiedKFold':

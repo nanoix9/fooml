@@ -11,12 +11,19 @@ class Comp(object):
 
     def __init__(self, obj):
         self._obj = obj
+        self._name = None
+
+    def set_name(self, name):
+        self._name = name
+
+    def get_name(self):
+        return self._name
 
     def __str__(self):
         return repr(self)
 
     def __repr__(self):
-        full_name = self.__class__.__module__ + '.' + self.__class__.__name__
+        full_name = util.get_type_fullname(self)
         if type(self._obj) == type(lambda: 0):
             desc = 'func=%s' % (str(self._obj.__name__))
         else:
@@ -24,7 +31,7 @@ class Comp(object):
         extr_desc = self._extr_desc()
         if extr_desc:
             desc = desc + '\n' + extr_desc
-        desc = '%s(\n%s)' % (full_name, util.indent(desc, 2))
+        desc = '%s(name="%s"\n%s)' % (full_name, self._name, util.indent(desc, 2))
         return desc
         #return '%s(obj=%s)' % (self.__class__.__name__, self._obj)
 

@@ -41,6 +41,9 @@ class dsxy(dataset):
         yield self.X
         yield self.y
 
+    def nsamples(self):
+        return len(self.X)
+
 class dssy(dataset):
 
     def __init__(self, score, y=None, index=None):
@@ -51,6 +54,9 @@ class dssy(dataset):
     def __iter__(self):
         yield self.score
         yield self.y
+
+    def nsamples(self):
+        return len(self.score)
 
 class dscy(dataset):
 
@@ -63,6 +69,9 @@ class dscy(dataset):
         yield self.cls
         yield self.y
 
+    def nsamples(self):
+        return len(self.cls)
+
 class dstv(dataset):
 
     def __init__(self, train, valid):
@@ -72,6 +81,9 @@ class dstv(dataset):
     def __iter__(self):
         yield self.train
         yield self.valid
+
+    def nsamples(self):
+        return self.train.nsamples(), self.valid.nsamples()
 
 class dslist(dataset):
 

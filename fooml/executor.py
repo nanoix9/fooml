@@ -22,14 +22,29 @@ class Executor(object):
     __OUTPUT__ = '__OUTPUT__'
     __NULL__ = '_'
 
-    def __init__(self, reporter):
+    def __init__(self, reporter=None):
         self._reporter = reporter
         self._graph = None
         self._cgraph = None
 
+    def set_reporter(self, reporter):
+        self._reporter = reporter
+
     def set_graph(self, g):
         self._graph = g
-        self._cgraph = graph._CompiledGraph(g)
+        return self
+
+    def compile(self):
+        logger.info('Compiling graph "%s" ...' % self._graph.name)
+        self._cgraph = graph._CompiledGraph(self._graph)
+        for name, acomp in self._graph.iter_comps():
+            if hasattr(acomp, '_exec') and isinstance(acomp._exec, Executor):
+                acomp._exec.set_reporter(self._reporter)
+                acomp._exec.compile()
+        return self
+
+    def compile_graph(self, g):
+        return self.set_graph(g).compile()
 
     def show(self):
         if self._cgraph is None:

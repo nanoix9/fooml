@@ -23,110 +23,29 @@ _NULL = '_'
 
 class Model(object):
 
-    def __init__(self, name, reporter, input=None, output=None):
+    def __init__(self, name, input=None, output=None):
         self._name = name
-        self._reporter = reporter
         self._input = input
         self._output = output
+
         self._graph = graph.CompGraph(name)
-        self._exec = executor.Executor(self._reporter)
+        self._graph.set_input(self._input)
+        self._graph.set_output(self._output)
+
+        self._exec = executor.Executor()
+        self._exec.set_graph(self._graph)
 
     def get_comp(self, name):
         return self._graph.get_comp(name)
 
-    def add_comp(self, name, acomp, inp, out):
-        logger.info('add componenet to graph "%s": %s --(%s)--> %s' % (self._graph.name, inp, name, out))
-        self._graph.add_comp(name, acomp, inp, out)
-        return self
-
-    def _add_new_comp(self, name, acomp, inp, out, package=None, args=[], opt={}, comp_opt={}):
-        if isinstance(acomp, basestring):
-            #package, acomp_name = acomp.split(':')
-            c = factory.create_comp(acomp, package=package, args=args, opt=opt, comp_opt=comp_opt)
-        elif isinstance(acomp, comp.Comp):
-            c = acomp
-        else:
-            c = factory.obj2comp(acomp, comp_opt)
-        self.add_comp(name, c, inp, out)
-        return self
-
-    def add_trans(self, name, acomp, input, output, args=[], opt={}, comp_opt={}):
-        self._add_new_comp(name, acomp, input, output, args=args, opt=opt, comp_opt={})
-        return self
-
-    def add_feat_trans(self, name, obj, input, output, args=[], opt={}, comp_opt={}):
-        if isinstance(obj, comp.Comp):
-            self.add_comp(name, obj, input, output)
-        elif hasattr(obj, '__call__'):
-            self.add_comp(name, misc.FeatTransComp((obj, args, opt), **comp_opt), input, output)
-        else:
-            raise TypeError()
-
-    def add_inv_trans(self, name, another, input, output):
-        acomp = self.get_comp(another)
-        inv_comp = factory.create_inv_trans(acomp)
-        self.add_comp(name, inv_comp, input, output)
-        return self
-
-    def add_classifier(self, name, acomp, input, output=_NULL, proba=None):
-        self._add_new_comp(name, acomp, input, output, package='sklearn', comp_opt=dict(proba=proba))
-        return self
-
-    def add_nn(self, name, nn, input, output=_NULL, train_opt={}):
-        ''' Add nerual networks '''
-
-        acomp = factory.obj2comp(nn, comp_opt=dict(train_opt=train_opt))
-        self.add_comp(name, acomp, input, output)
-
-    def evaluate(self, indic, input, output=_NULL, acomp=None):
-        if acomp is not None:
-            self.add_comp(indic, acomp, input, output)
-        else:
-            for i, idc in slist.enumerate(indic):
-                #eva = factory.create_evaluator(i)
-                #self.add_comp(i, eva, input, _NULL)
-                self._add_new_comp(idc, idc, input, slist.get(output, i))
-        return self
-
-    def add_split(self, name, input, output, args=[], opt={}, partition=None, part_key=None):
-        comp_opt = {}
-        if partition is not None:
-            real_inp = slist.to_list(input)
-            real_inp.append(partition)
-            if part_key is not None:
-                comp_opt['part_key'] = part_key
-            spl = factory.create_comp('partsplit', args=args, opt=opt, comp_opt=comp_opt)
-        else:
-            real_inp = input
-            spl = factory.create_comp('split', args=args, opt=opt, comp_opt=comp_opt)
-        self.add_comp(name, spl, real_inp, output)
-
-    def submodel(self, name, input, output=_NULL):
-        return Model(name, self._reporter, input=input, output=output)
-
-    def cross_validate(self, model, k=5, type='kfold', label=None, label_key=None, input=None, output=_NULL, **kwds):
-        if not isinstance(model, Model):
-            raise TypeError()
-        model.compile()
-        acomp = factory.create_comp(type, comp_opt=dict(k=k, exe=model._exec, label=label, label_key=label_key, **kwds))
-        #self.add_comp(type, acomp, model._input, model._output)
-        if input is None:
-            input = model._input
-        if label is not None:
-            input = slist.to_list(input)
-            input.append(label)
-        self.add_comp('cross_validation.' + type, acomp, input, output)
-        return self
-
-    def compile(self):
-        self._graph.set_input(self._input)
-        self._graph.set_output(self._output)
-        self._report('Compiling graph "%s" ...' % self._name)
-        self._exec.set_graph(self._graph)
+    def add_comp(self, acomp, input, output=_NULL):
+        name = acomp.get_name()
+        logger.info('add componenet to graph "%s": %s --(%s)--> %s' % (self._graph.name, input, name, output))
+        self._graph.add_comp(name, acomp, input, output)
         return self
 
     def show(self):
-        self._report('Graph of computing components: %s' % self._graph)
+        logger.info('Graph of computing components: %s' % self._graph)
 
     def _report_levelup(self):
         self._reporter.levelup()
@@ -143,12 +62,13 @@ class FooML(Model):
 
 
     def __init__(self, name='fool'):
-        super(FooML, self).__init__(name, report.SeqReporter())
+        super(FooML, self).__init__(name)
         #self._err = sys.stderr
+        self._reporter = report.SeqReporter()
         self._ds_train = {}
         self._ds_test = {}
         #self._graph = graph.CompGraph(name)
-        self._exec = executor.Executor(self._reporter)
+        #self._exec = executor.Executor(self._reporter)
         #self._target = None
         self._outputs = []
         self._output_opts = {}
@@ -264,7 +184,11 @@ class FooML(Model):
             self._output = self._outputs
         else:
             self._output = _NULL
-        return super(FooML, self).compile()
+        self._graph.set_input(self._input)
+        self._graph.set_output(self._output)
+        self._exec.set_reporter(self._reporter)
+        self._exec.compile()
+        return self
 
     def run(self, test=True):
         self.show()
@@ -344,35 +268,109 @@ class FooML(Model):
         self._reporter.report(msg)
 
 
+def new_comp(name, acomp, package=None, args=[], opt={}, comp_opt={}):
+    if isinstance(acomp, basestring):
+        #package, acomp_name = acomp.split(':')
+        c = factory.create_comp(acomp, package=package, args=args, opt=opt, comp_opt=comp_opt)
+    elif isinstance(acomp, comp.Comp):
+        c = acomp
+    else:
+        c = factory.obj2comp(acomp, comp_opt)
+    c.set_name(name)
+    return c
+
+def trans(name, acomp, args=[], opt={}, comp_opt={}):
+    return new_comp(name, acomp, args=args, opt=opt, comp_opt={})
+
+def feat_trans(name, obj, args=[], opt={}, comp_opt={}):
+    if isinstance(obj, comp.Comp):
+        return obj
+    elif hasattr(obj, '__call__'):
+        return new_comp(name, misc.FeatTransComp((obj, args, opt), **comp_opt))
+    else:
+        raise TypeError()
+
+def inv_trans(name, another):
+    inv_comp = factory.create_inv_trans(another)
+    return new_comp(name, inv_comp)
+
+def classifier(name, acomp, package='sklearn', proba=None):
+    return new_comp(name, acomp, package=package, comp_opt=dict(proba=proba))
+
+def nnet(name, nn, train_opt={}):
+    ''' Add nerual networks '''
+
+    acomp = factory.obj2comp(nn, comp_opt=dict(train_opt=train_opt))
+    return new_comp(name, acomp)
+
+def evaluator(indic, acomp=None):
+    if acomp is not None:
+        return new_comp(indic, acomp)
+    return new_comp(indic, indic)
+
+def splitter(name, args=[], opt={}, partition=None, part_key=None):
+    comp_opt = {}
+    if partition is not None:
+        #real_inp = slist.to_list(input)
+        #real_inp.append(partition)
+        if part_key is not None:
+            comp_opt['part_key'] = part_key
+        spl = factory.create_comp('partsplit', args=args, opt=opt, comp_opt=comp_opt)
+    else:
+        #real_inp = input
+        spl = factory.create_comp('split', args=args, opt=opt, comp_opt=comp_opt)
+    return new_comp(name, spl)
+
+def submodel(name, input, output):
+    return Model(name, input, output)
+
+def cross_validate(name, model, k=5, type='kfold', label=None, label_key=None, **kwds):
+    if not isinstance(model, Model):
+        raise TypeError()
+    acomp = factory.create_comp(type, comp_opt=dict(k=k, exe=model._exec, label=label, label_key=label_key, **kwds))
+    #if input is None:
+    #    input = model._input
+    #if label is not None:
+    #    input = slist.to_list(input)
+    #    input.append(label)
+    return new_comp(name, acomp)
+
+
 def __test1():
     print '========================================='
     foo = FooML('__test1')
     foo.add_reporter(report.MdReporter('report.md'))
     data_name = 'digits'
     data_name = 'iris'
-    foo.use_data(data_name, flatten=True)
+    iris_2 = 'iris.2'
 
     #foo.add_cutter('adapt', input='iris', output='cutted')
     #foo.add_fsel('Kbest', input='cutted', output='x')
-    iris_2 = 'iris.2'
-    foo.add_trans('binclass', 'binclass', input=data_name, output=iris_2)
+    binclass = trans('binclass', 'binclass')
     #iris_2 = data_name
 
     #foo.add_classifier('lr', 'LR', input=iris_2, output='y.lr.c')
     #foo.add_classifier('lr', 'LR', input=iris_2, output='y.lr', proba='only')
-    foo.add_classifier('lr', 'LR', input=iris_2, output=['y.lr.c', 'y.lr'], proba='with')
+    lr = classifier('lr', 'LR', proba='with')
 
     #foo.add_classifier('clf', 'DecisionTree', input=iris_2, output='y.lr.c')
     #foo.add_classifier('lr', 'LR', input='iris', output='y.lr')
     #foo.add_classifier('RandomForest', input='x')
 
     #foo.cross_validate('K', k=4)
-    foo.evaluate('AUC', input='y.lr')
+    auc = evaluator('AUC')
 
     #foo.add_trans('decide', 'decide', input='y.lr', output='y.lr.c')
-    foo.evaluate('report', input='y.lr.c')
+    rep = evaluator('report')
     #foo.save_output(['y.lr', 'y.lr.c'])
     #foo.save_output('y.lr')
+
+    foo.use_data(data_name, flatten=True)
+
+    foo.add_comp(binclass , input=data_name, output=iris_2)
+    foo.add_comp(lr, input=iris_2, output=['y.lr.c', 'y.lr'])
+    foo.add_comp(auc, input='y.lr')
+    foo.add_comp(rep , input='y.lr.c')
 
     foo.compile()
     foo.run_train()
@@ -383,32 +381,26 @@ def __test2():
     foo.add_reporter(report.MdReporter('report.md'))
     data_name = 'digits'
     data_name = 'iris'
-    foo.use_data(data_name, flatten=True)
-
-    #foo.add_cutter('adapt', input='iris', output='cutted')
-    #foo.add_fsel('Kbest', input='cutted', output='x')
     iris_2 = 'iris.2'
-    foo.add_trans('binclass', 'binclass', input=data_name, output=iris_2)
-    #iris_2 = data_name
 
-    mdl_cv = foo.submodel('submdl', input=iris_2, output=['auc', 'report'])
-    #foo.add_classifier('lr', 'LR', input=iris_2, output='y.lr.c')
-    #foo.add_classifier('lr', 'LR', input=iris_2, output='y.lr', proba='only')
-    mdl_cv.add_classifier('lr', 'LR', input=iris_2, output=['y.lr.c', 'y.lr'], proba='with')
+    binclass = trans('binclass', 'binclass')
+    lr = classifier('lr', 'LR', proba='with')
+    auc = evaluator('AUC')
+    rep = evaluator('report')
 
-    #foo.add_classifier('clf', 'DecisionTree', input=iris_2, output='y.lr.c')
-    #foo.add_classifier('lr', 'LR', input='iris', output='y.lr')
-    #foo.add_classifier('RandomForest', input='x')
+    mdl_cv = submodel('submdl', input=iris_2, output=['auc', 'report'])
+    mdl_cv.add_comp(lr, input=iris_2, output=['y.lr.c', 'y.lr'])
+    mdl_cv.add_comp(auc, input='y.lr', output='auc')
+    mdl_cv.add_comp(rep , input='y.lr.c', output='report')
 
-    #foo.cross_validate('K', k=4)
-    mdl_cv.evaluate('AUC', input='y.lr', output='auc')
-
-    #foo.add_trans('decide', 'decide', input='y.lr', output='y.lr.c')
-    mdl_cv.evaluate('report', input='y.lr.c', output='report')
     #foo.save_output(['y.lr', 'y.lr.c'])
     #foo.save_output('y.lr')
-    foo.cross_validate(mdl_cv, k=3, type='stratifiedkfold')
+    cv = cross_validate('cv', mdl_cv, k=3, type='stratifiedkfold')
 
+    foo.use_data(data_name, flatten=True)
+
+    foo.add_comp(binclass , input=data_name, output=iris_2)
+    foo.add_comp(cv, input=iris_2)
     #foo.save_output(['auc', 'report'])
 
     foo.compile()
