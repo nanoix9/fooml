@@ -37,10 +37,10 @@ nb_epoch = 5
 
 def main(test):
     global img_size
+    global color_type
 
     foo = fooml.FooML()
     foo.report_to('report.md')
-    foo.enable_data_cache()
 
     data_suffix= '_{}x{}x{}'.format(img_size[0], img_size[1], color_type)
     data_name = 'drive' + data_suffix
@@ -52,10 +52,13 @@ def main(test):
         nb_epoch = 1
         foo.load_image_grouped(data_name, path='/vola1/scndof/data/drive/sample', resize=img_size, color_type=color_type)
     elif data_name.startswith('drive'):
+        foo.enable_data_cache()
         #foo.load_image_grouped(data_name, train_path='/vola1/scndof/data/drive/train', resize=img_size)
         foo.load_image_grouped(data_name, path='/vola1/scndof/data/drive', resize=img_size, color_type=color_type)
     #sys.exit()
-    else:
+    elif data_name == 'mnist':
+        img_size = (224, 224)
+        color_type = 1
         foo.use_data(data_name)
 
     data_driver_id = 'driver_id'
@@ -68,41 +71,40 @@ def main(test):
     img_size = X_train.shape[1:3]
     print img_size
 
-    le = fooml.trans('le', 'labelencoder')
-    cate = fooml.trans('cate', 'to_categorical', args=[10])
-    reshape1 = fooml.feat_trans('reshape1',
+    if len(y_train.shape) <= 1 and data_name != 'mnist':
+        le = fooml.trans('le', 'labelencoder')
+    else:
+        le = fooml.nop()
+
+    if len(y_train.shape) <= 1:
+        cate = fooml.trans('cate', 'to_categorical', args=[10])
+    else:
+        cate = fooml.nop()
+
+    if len(X_train.shape) < 4 or color_type == 1:
+        reshape = fooml.feat_trans('reshape1',
                 lambda data: data.reshape(data.shape[0], color_type, data.shape[1], data.shape[2]))
-    def _foo(data):
-        data = data.astype('float32')
-        data = data.transpose((0, 3, 1, 2))
-        mean_pixel = [103.939, 116.779, 123.68]
-        for c in range(len(mean_pixel)):
-            data[:, c, :, :] -= mean_pixel[c]
-        return data
-    reshape3 = fooml.feat_trans('reshape3', _foo)
+    elif color_type == 3:
+        def _foo(data):
+            data = data.astype('float32')
+            data = data.transpose((0, 3, 1, 2))
+            mean_pixel = [103.939, 116.779, 123.68]
+            for c in range(len(mean_pixel)):
+                data[:, c, :, :] -= mean_pixel[c]
+            return data
+        reshape = fooml.feat_trans('reshape3', _foo)
+    else:
+        reshape = fooml.nop()
 
     data_name_labeled = 'y_indexed'
-    if len(y_train.shape) <= 1:
-        foo.add_comp(le, input=data_name, output=data_name_labeled)
-    else:
-        data_name_labeled = data_name
-
     data_cate = 'y_cate'
-    if len(y_train.shape) <= 1:
-        foo.add_comp(cate, input=data_name_labeled , output=data_cate)
-    else:
-        data_cate = data_name_labeled
-    #data_cate = data_name_labeled
-
     data_reshape = 'x_reshape'
-    if len(X_train.shape) < 4 or color_type == 1:
-        foo.add_comp(reshape1, input=data_cate, output=data_reshape)
-    elif color_type == 3:
-        foo.add_comp(reshape3, input=data_cate, output=data_reshape)
-    else:
-        data_reshape = data_cate
     pred = 'y_pred'
     proba = 'y_proba' + data_suffix
+
+    foo.add_comp(le, input=data_name, output=data_name_labeled)
+    foo.add_comp(cate, input=data_name_labeled , output=data_cate)
+    foo.add_comp(reshape, input=data_cate, output=data_reshape)
 
     #model = create_model_v1(img_size, color_type)
     #model = create_model_v2(img_size, color_type)

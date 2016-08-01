@@ -35,13 +35,27 @@ class Model(object):
         self._exec = executor.Executor()
         self._exec.set_graph(self._graph)
 
+        self._data_alias = {}
+
     def get_comp(self, name):
         return self._graph.get_comp(name)
 
     def add_comp(self, acomp, input, output=_NULL):
-        name = acomp.get_name()
-        logger.info('add componenet to graph "%s": %s --(%s)--> %s' % (self._graph.name, input, name, output))
-        self._graph.add_comp(name, acomp, input, output)
+        if isinstance(acomp, comp.Nop):
+            logger.info('make two datasets as same thing in graph "%s": %s = %s' % (self._graph.name, input, output))
+            self._data_alias[output] = input
+        else:
+            def _get_real_input(inp):
+                if inp in self._data_alias:
+                    real_input = self._data_alias[inp]
+                    logger.info('data "%s" is actually "%s"' % (input, real_input))
+                else:
+                    real_input = inp
+                return real_input
+            real_input = slist.map(_get_real_input, input)
+            name = acomp.get_name()
+            logger.info('add componenet to graph "%s": %s --(%s)--> %s' % (self._graph.name, real_input, name, output))
+            self._graph.add_comp(name, acomp, real_input, output)
         return self
 
     def show(self):
@@ -90,15 +104,15 @@ class FooML(Model):
     def use_data(self, data, **kwds):
         name = data
         ds = dataset.load_data(data, **kwds)
+        self._report('using data "%s"' % name)
         self.add_data(ds, name=name)
 
     def load_csv(self, name, path, **opt):
         ds = self._get_data_from_cache(name)
         if ds is None:
-            self._report('cache missed for data "{}", load original data'.format(name))
+            self._report('no data "{}" in cache, load original data'.format(name))
             ds = dataset.load_csv(path, **opt)
             self._set_data_to_cache(name, ds)
-            self._report('data "%s" is cached' % name)
         else:
             self._report('load data "{}" from cache'.format(name))
         self.add_data(ds, name=name)
@@ -107,7 +121,7 @@ class FooML(Model):
         ds = self._get_data_from_cache(name)
 
         if ds is None:
-            self._report('cache missed for data "{}", load original data'.format(name))
+            self._report('no data "{}" in cache, load original data'.format(name))
             if path is not None:
                 train_path = os.path.join(path, 'train')
                 test_path = os.path.join(path, 'test')
@@ -120,7 +134,6 @@ class FooML(Model):
                 ds_test = None
                 ds = ds_train
             self._set_data_to_cache(name, ds)
-            self._report('data "%s" is cached' % name)
         else:
             self._report('load data "{}" from cache'.format(name))
 
@@ -162,8 +175,11 @@ class FooML(Model):
         return None
 
     def _set_data_to_cache(self, name, data):
+        ret = None
         if self._use_data_cache:
-            return self._data_cache.set(name, data)
+            ret = self._data_cache.set(name, data)
+            self._report('data "%s" is cached' % name)
+        return ret
 
     def save_output(self, outs, path=None, opt={}):
         self._outputs.extend(slist.iter(outs))
@@ -278,6 +294,9 @@ def new_comp(name, acomp, package=None, args=[], opt={}, comp_opt={}):
         c = factory.obj2comp(acomp, comp_opt)
     c.set_name(name)
     return c
+
+def nop():
+    return comp.Nop()
 
 def trans(name, acomp, args=[], opt={}, comp_opt={}):
     return new_comp(name, acomp, args=args, opt=opt, comp_opt={})

@@ -48,6 +48,14 @@ class Comp(object):
     def _extr_desc(self):
         return ''
 
+class Nop(Comp):
+
+    def __init__(self):
+        super(Nop, self).__init__(None)
+
+    def __repr__(self):
+        return util.get_type_fullname(self)
+
 class LambdaComp(Comp):
 
     def __init__(self, obj, fit, trans, fit_trans=None):
