@@ -1,2 +1,1 @@
-from fooml import FooML
-from fooml import main
+from fooml import *

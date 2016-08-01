@@ -237,7 +237,7 @@ def test_exec():
     exe = Executor(report.LogReporter())
     data = [(11,22), {'a':100, 10:200}]
     #exe.run_train(data, gcomp)
-    exe.set_graph(gcomp)
+    exe.compile_graph(gcomp)
     exe.show()
     exe.run_train(data)
 
@@ -257,7 +257,7 @@ def test_nest():
     print gcomp
 
     exe = Executor(report.LogReporter())
-    exe.set_graph(gcomp)
+    exe.compile_graph(gcomp)
 
     data = [(11,22), {'a':100, 10:200}]
     #exe.run_train(data, gcomp)

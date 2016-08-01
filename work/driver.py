@@ -19,7 +19,7 @@ import fooml
 from fooml import dataset
 from fooml import util
 
-cv = True
+do_cv = True
 #img_size=(64, 64)
 img_size = (224, 224)
 color_type = 1
@@ -68,38 +68,45 @@ def main(test):
     img_size = X_train.shape[1:3]
     print img_size
 
+    le = fooml.trans('le', 'labelencoder')
+    cate = fooml.trans('cate', 'to_categorical', args=[10])
+    reshape1 = fooml.feat_trans('reshape1',
+                lambda data: data.reshape(data.shape[0], color_type, data.shape[1], data.shape[2]))
+    def _foo(data):
+        data = data.astype('float32')
+        data = data.transpose((0, 3, 1, 2))
+        mean_pixel = [103.939, 116.779, 123.68]
+        for c in range(len(mean_pixel)):
+            data[:, c, :, :] -= mean_pixel[c]
+        return data
+    reshape3 = fooml.feat_trans('reshape3', _foo)
+
     data_name_labeled = 'y_indexed'
     if len(y_train.shape) <= 1:
-        foo.add_trans('le', 'labelencoder', input=data_name, output=data_name_labeled)
+        foo.add_comp(le, input=data_name, output=data_name_labeled)
     else:
         data_name_labeled = data_name
 
     data_cate = 'y_cate'
     if len(y_train.shape) <= 1:
-        foo.add_trans('cate', 'to_categorical', input=data_name_labeled , output=data_cate, args=[10])
+        foo.add_comp(cate, input=data_name_labeled , output=data_cate)
     else:
         data_cate = data_name_labeled
     #data_cate = data_name_labeled
 
     data_reshape = 'x_reshape'
     if len(X_train.shape) < 4 or color_type == 1:
-        foo.add_feat_trans('reshape',
-                lambda data: data.reshape(data.shape[0], color_type, data.shape[1], data.shape[2]),
-                input=data_cate, output=data_reshape)
+        foo.add_comp(reshape1, input=data_cate, output=data_reshape)
     elif color_type == 3:
-        def _foo(data):
-            data = data.astype('float32')
-            data = data.transpose((0, 3, 1, 2))
-            mean_pixel = [103.939, 116.779, 123.68]
-            for c in range(len(mean_pixel)):
-                data[:, c, :, :] -= mean_pixel[c]
-            return data
-        foo.add_feat_trans('reshape', _foo, input=data_cate, output=data_reshape)
+        foo.add_comp(reshape3, input=data_cate, output=data_reshape)
     else:
         data_reshape = data_cate
     pred = 'y_pred'
     proba = 'y_proba' + data_suffix
 
+    #model = create_model_v1(img_size, color_type)
+    #model = create_model_v2(img_size, color_type)
+    #model = vgg_std16_model(img_size, color_type)
     model = vgg_19()
     model.summary()
     callbacks = [
@@ -107,25 +114,20 @@ def main(test):
                 ]
     train_opt=dict(batch_size=batch_size, nb_epoch=nb_epoch, \
             verbose=1, shuffle=True, callbacks=callbacks)
-    if not cv:
+    nncls = fooml.nnet('nncls', model, train_opt=train_opt)
+    logloss = fooml.evaluator('logloss')
+    if not do_cv:
         data_split = 'data_split'
         #foo.add_trans('split', 'split', input=data_reshape, output=data_split, opt=dict(test_size=0.2))
-        foo.add_split('split', input=data_reshape, output=data_split, \
-                partition='driver_id', part_key=lambda df: df.subject, opt=dict(test_size=0.2))
+        split = fooml.splitter('split', partition='driver_id', part_key=lambda df: df.subject, opt=dict(test_size=0.2))
+        foo.add_comp(split, input=[data_reshape, 'driver_id'], output=data_split)
         #data_split = data_reshape
 
         #foo.add_classifier('rand', 'random', input=data_reshape, output=[pred, proba], proba='with')
-        #model = create_model_v1(img_size, color_type)
-        #model = create_model_v2(img_size, color_type)
-        #model = vgg_std16_model(img_size, color_type)
-
-        callbacks = [
-                EarlyStopping(monitor='val_loss', patience=2, verbose=0),
-                ]
-        foo.add_nn('nn', model, input=data_split, output=proba, train_opt=train_opt)
+        foo.add_comp(nncls, input=data_split, output=proba)
         #pred = data_name_labeled
 
-        foo.evaluate('logloss', input=proba)
+        foo.add_comp(logloss, input=proba)
 
         #foo.add_inv_trans('invle', 'le', input=pred, output='y_pred_format')
 
@@ -133,13 +135,14 @@ def main(test):
         #foo.save_output(proba, path=sys.stdout, opt=dict(columns=classes))
         foo.save_output(proba, opt=dict(label='img', columns=classes))
     else:
-        sub = foo.submodel('cv', input=data_reshape, output='logloss')
-        sub.add_nn('nn', model, input=data_reshape, output=proba, train_opt=train_opt)
-        sub.evaluate('logloss', input=proba, output='logloss')
-
-        foo.cross_validate(sub, k=2, type='labelkfold', \
+        sub = fooml.submodel('submdl', input=data_reshape, output='logloss')
+        sub.add_comp(nncls, input=data_reshape, output=proba)
+        sub.add_comp(logloss, input=proba, output='logloss')
+        cv = fooml.cross_validate('cv', sub, k=2, type='labelkfold', \
                 label='driver_id', label_key=lambda df: df.subject, \
                 use_dstv=True)
+
+        foo.add_comp(cv, input=[data_reshape, 'driver_id'])
 
     foo.show()
     foo.desc_data()

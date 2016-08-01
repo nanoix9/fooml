@@ -303,10 +303,10 @@ def nnet(name, nn, train_opt={}):
     acomp = factory.obj2comp(nn, comp_opt=dict(train_opt=train_opt))
     return new_comp(name, acomp)
 
-def evaluator(indic, acomp=None):
-    if acomp is not None:
-        return new_comp(indic, acomp)
-    return new_comp(indic, indic)
+def evaluator(name, acomp=None):
+    if acomp is None:
+        acomp = name
+    return new_comp(name, acomp)
 
 def splitter(name, args=[], opt={}, partition=None, part_key=None):
     comp_opt = {}
@@ -392,16 +392,12 @@ def __test2():
     mdl_cv.add_comp(lr, input=iris_2, output=['y.lr.c', 'y.lr'])
     mdl_cv.add_comp(auc, input='y.lr', output='auc')
     mdl_cv.add_comp(rep , input='y.lr.c', output='report')
-
-    #foo.save_output(['y.lr', 'y.lr.c'])
-    #foo.save_output('y.lr')
     cv = cross_validate('cv', mdl_cv, k=3, type='stratifiedkfold')
 
     foo.use_data(data_name, flatten=True)
 
     foo.add_comp(binclass , input=data_name, output=iris_2)
     foo.add_comp(cv, input=iris_2)
-    #foo.save_output(['auc', 'report'])
 
     foo.compile()
     foo.run_train()
