@@ -10,8 +10,19 @@ from keras.layers.core import Dense, Dropout, Activation, Flatten
 from keras.layers.convolutional import Convolution2D, MaxPooling2D, ZeroPadding2D
 from keras.optimizers import SGD, Adam
 
-def vgg16(img_size, color_type=3, nb_class=10, weight_path=None):
-    img_rows, img_cols = img_size
+def vgg_preproc():
+    def _vgg_preproc(data):
+        data = data.astype('float32')
+        data = data.transpose((0, 3, 1, 2))
+        mean_pixel = [103.939, 116.779, 123.68]
+        for c in range(len(mean_pixel)):
+            data[:, c, :, :] -= mean_pixel[c]
+        return data
+    return _vgg_preproc
+
+def vgg16(nb_class=10, weight_path=None):
+    img_rows, img_cols = 224, 224
+    color_type = 3
 
     model = Sequential()
     model.add(ZeroPadding2D((1, 1), input_shape=(color_type,

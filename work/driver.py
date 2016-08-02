@@ -83,14 +83,7 @@ def main(test):
         reshape = fooml.feat_trans('reshape1',
                 lambda data: data.reshape(data.shape[0], color_type, data.shape[1], data.shape[2]))
     elif color_type == 3:
-        def _foo(data):
-            data = data.astype('float32')
-            data = data.transpose((0, 3, 1, 2))
-            mean_pixel = [103.939, 116.779, 123.68]
-            for c in range(len(mean_pixel)):
-                data[:, c, :, :] -= mean_pixel[c]
-            return data
-        reshape = fooml.feat_trans('reshape3', _foo)
+        reshape = fooml.trans('reshape3', 'vgg_preproc')
     else:
         reshape = fooml.nop()
 

@@ -73,6 +73,7 @@ __default_config = {
         'binclass': (misc.TargTransComp, 'fooml.proc', 'binclass'),
         'decide': (misc.DecideComp, 'fooml.proc', 'decide'),
 
+        'vgg_preproc': (misc.FeatTransComp, 'fooml.comp.special', 'vgg_preproc'),
         'vgg19': (kr.Clf, 'fooml.comp.special', 'vgg19'),
         'vgg16': (kr.Clf, 'fooml.comp.special', 'vgg16'),
         }

@@ -24,6 +24,8 @@ class FunComp(comp.StatelessComp):
                 opt = fun_with_arg[2]
         else:
             fun = fun_with_arg
+            args = []
+            opt = {}
         super(FunComp, self).__init__(fun)
         self._args = args
         self._opt = opt
