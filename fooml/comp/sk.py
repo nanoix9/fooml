@@ -29,10 +29,10 @@ class SkComp(comp.Comp):
         #print self._obj
         #return self._obj.fit_transform(X, y)
 
-class TargTrans(mixin.TargTransMixin, SkComp):
+class TargMap(mixin.TargMapMixin, SkComp):
 
     def __init__(self, obj):
-        super(TargTrans, self).__init__(obj)
+        super(TargMap, self).__init__(obj)
         self._fit_func = self._obj.fit
         self._trans_func = self._obj.transform
 
@@ -42,7 +42,7 @@ class TargTrans(mixin.TargTransMixin, SkComp):
             logger.info('labels: {}'.format(self._obj.classes_))
         return ret
 
-class TargInvTrans(mixin.TargTransMixin, SkComp):
+class TargInvTrans(mixin.TargMapMixin, SkComp):
 
     def __init__(self, another):
         super(TargInvTrans, self).__init__(another._obj)
@@ -173,9 +173,9 @@ class CV(group.ExecMixin, mixin.PartSplitMixin, SkComp):
 
     def _get_labels(self, data, label_data):
         if self._label is None:
-            return data.y, data.index
+            return data.y, data.get_index()
         else:
-            return np.array(self._label_key(label_data.X)), label_data.index
+            return np.array(self._label_key(label_data.X)), label_data.get_index()
 
     def _split_labels_index(self, labels):
         return self._get_iter(labels)

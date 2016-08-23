@@ -36,7 +36,7 @@ def main():
     foo.load_csv('appevents','app_events.csv', usecols=['event_id','app_id','is_active'], dtype={'is_active':bool})
     foo.load_csv('app_labels', 'app_labels.csv')
 
-    drop_dup = fooml.feat_trans('drop_dup', lambda df:df.drop_duplicates('device_id',keep='first').set_index('device_id'))
+    drop_dup = fooml.feat_map('drop_dup', lambda df:df.drop_duplicates('device_id',keep='first').set_index('device_id'))
 
     feat_merge = fooml.feat_merge('merge', _merge)
     ga_dummy = fooml.trans('dummy_ga', 'dummy', opt=dict(cols=['brand', 'model'], sparse='csr'))

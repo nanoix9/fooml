@@ -326,11 +326,11 @@ def nop():
 def trans(name, acomp, args=[], opt={}, comp_opt={}):
     return new_comp(name, acomp, args=args, opt=opt, comp_opt={})
 
-def feat_trans(name, obj, args=[], opt={}, comp_opt={}):
+def feat_map(name, obj, args=[], opt={}, comp_opt={}):
     if isinstance(obj, comp.Comp):
         return obj
     elif hasattr(obj, '__call__'):
-        return new_comp(name, misc.FeatTransComp((obj, args, opt), **comp_opt))
+        return new_comp(name, misc.FeatFuncMapComp((obj, args, opt), **comp_opt))
     else:
         raise TypeError()
 
@@ -342,7 +342,7 @@ def feat_merge(name, obj, args=[], opt={}, comp_opt={}):
     if isinstance(obj, comp.Comp):
         return obj
     elif hasattr(obj, '__call__'):
-        return new_comp(name, misc.FeatMergeComp((obj, args, opt), **comp_opt))
+        return new_comp(name, misc.FeatFuncMergeComp((obj, args, opt), **comp_opt))
     else:
         raise TypeError()
 

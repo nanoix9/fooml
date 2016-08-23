@@ -46,7 +46,7 @@ class dsxy(dataset):
         return len(self.X)
 
     def get_index(self):
-        raise NotImplementedError()
+        #raise NotImplementedError()
         if isinstance(self.X, (pd.DataFrame, pd.Series)):
             return self.X.index
         else:
@@ -390,6 +390,7 @@ def get_train(data):
     return X_train, y_train
 
 def split(data, it, iv):
+    #print it, iv
     if not isinstance(data, dsxy):
         raise TypeError()
     X, y = data

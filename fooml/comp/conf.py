@@ -70,14 +70,14 @@ def __get_from_config(config, module, name):
 
 
 __default_config = {
-        'binclass': (misc.TargTransComp, 'fooml.proc', 'binclass'),
+        'binclass': (misc.TargFuncMapComp, 'fooml.proc', 'binclass'),
         'decide': (misc.DecideComp, 'fooml.proc', 'decide'),
         #'dummy': (misc.MyComp, 'fooml.proc', 'Dummy'),
         'dummy': (misc.FeatObjMergeComp, 'fooml.proc', 'Dummy'),
-        'align_index': (misc.FeatMergeComp, 'fooml.proc', 'align_index'),
-        'merge': (misc.FeatMergeComp, 'fooml.proc', 'merge'),
+        'align_index': (misc.FeatFuncMergeComp, 'fooml.proc', 'align_index'),
+        'merge': (misc.FeatFuncMergeComp, 'fooml.proc', 'merge'),
 
-        'vgg_preproc': (misc.FeatTransComp, 'fooml.comp.special', 'vgg_preproc'),
+        'vgg_preproc': (misc.FeatFuncMapComp, 'fooml.comp.special', 'vgg_preproc'),
         'vgg19': (kr.Clf, 'fooml.comp.special', 'vgg19'),
         'vgg16': (kr.Clf, 'fooml.comp.special', 'vgg16'),
         }
@@ -86,7 +86,7 @@ __sklearn_config = {
         'split': (misc.SplitComp, 'cross_validation', 'train_test_split'),
         'partsplit': (misc.PartSplitComp, 'cross_validation', 'train_test_split'),
 
-        'labelencoder': (sk.TargTrans, 'preprocessing', 'LabelEncoder'),
+        'labelencoder': (sk.TargMap, 'preprocessing', 'LabelEncoder'),
 
         'LR': (sk.Clf, 'linear_model', 'LogisticRegression'),
         'DecisionTree': (sk.Clf, 'tree', 'DecisionTreeClassifier'),
@@ -104,7 +104,7 @@ __sklearn_config = {
 
 __keras_config = {
         #'logloss': (kr.Eva, 'metrics', 'log_loss'),
-        'to_categorical': (misc.TargTransComp, 'utils.np_utils', 'to_categorical'),
+        'to_categorical': (misc.TargFuncMapComp, 'utils.np_utils', 'to_categorical'),
         }
 
 __config = {

@@ -59,6 +59,81 @@ class FunComp(comp.StatelessComp):
                 ', '.join('{}={}'.format(k, v) for k, v in self._opt.iteritems())))
 
 
+class FuncTransComp(FunComp):
+
+    def __init__(self, fun_with_arg):
+        super(FuncTransComp, self).__init__(fun_with_arg)
+        self._fit_func = None
+
+    def _trans_func(self, *data):
+        self._log_func()
+        #print data, self._args
+        return self._obj(*(data + self._args), **self._opt)
+
+    def _fit_trans_func(self, *data):
+        return self._trans_func(*data)
+
+class TargFuncMapComp(mixin.TargMapMixin, FuncTransComp):
+    pass
+
+class FeatFuncMapComp(mixin.FeatMapMixin, FuncTransComp):
+    pass
+
+class FeatFuncMergeComp(mixin.FeatMergeMixin, FuncTransComp):
+    pass
+
+class ObjTransComp(comp.Comp):
+
+    def __init__(self, obj):
+        super(ObjTransComp, self).__init__(obj)
+        self._fit_func = None
+
+    def _trans_func(self, *data):
+        return self._obj.trans(*data)
+
+    def _fit_trans_func(self, *data):
+        return self._obj.fit_trans(*data)
+
+class FeatObjMapComp(mixin.FeatMapMixin, ObjTransComp):
+    pass
+
+class FeatObjMergeComp(mixin.FeatMergeMixin, ObjTransComp):
+    pass
+
+class SplitComp(mixin.SplitMixin, FunComp):
+
+    def __init__(self, fun_with_arg):
+        super(SplitComp, self).__init__(fun_with_arg)
+        self._fit_func = None
+
+    def _split(self, X, y, index):
+        self._log_func()
+        ret = self._obj(X, y, *self._args, **self._opt)
+        #TODO: not support index yet
+        return ret + [None, None]
+
+class PartSplitComp(mixin.PartSplitMixin, FunComp):
+
+    def __init__(self, fun_with_arg, part_key=lambda x:x, obj_return_value=True):
+        super(PartSplitComp, self).__init__(fun_with_arg)
+        self._fit_func = None
+        self._part_key = part_key
+        self._obj_return_value = obj_return_value
+
+    def _get_labels(self, data, partition):
+        return np.array(self._part_key(partition.X)), partition.get_index()
+
+    def _split_labels_index(self, labels):
+        keys = np.unique(labels)
+        self._log_func()
+        tk, vk = self._obj(keys, *self._args, **self._opt)
+        if self._obj_return_value:
+            tk = self._value_to_index(tk, labels)
+            vk = self._value_to_index(vk, labels)
+        return tk, vk
+
+
+##################### Deprecated
 
 class DsTransComp(FunComp):
 
@@ -99,79 +174,6 @@ class DsTransComp(FunComp):
     def _call_func(self, data):
         return FunComp.trans(self, data)
 
-
-class FuncTransComp(FunComp):
-
-    def __init__(self, fun_with_arg):
-        super(FuncTransComp, self).__init__(fun_with_arg)
-        self._fit_func = None
-
-    def _trans_func(self, *data):
-        self._log_func()
-        #print data, self._args
-        return self._obj(*(data + self._args), **self._opt)
-
-    def _fit_trans_func(self, *data):
-        return self._trans_func(*data)
-
-class TargTransComp(mixin.TargTransMixin, FuncTransComp):
-    pass
-
-class FeatTransComp(mixin.FeatTransMixin, FuncTransComp):
-    pass
-
-class FeatMergeComp(mixin.FeatMergeMixin, FuncTransComp):
-    pass
-
-class ObjTransComp(comp.Comp):
-
-    def __init__(self, obj):
-        super(ObjTransComp, self).__init__(obj)
-        self._fit_func = None
-
-    def _trans_func(self, *data):
-        return self._obj.trans(*data)
-
-    def _fit_trans_func(self, *data):
-        return self._obj.fit_trans(*data)
-
-class FeatObjTransComp(mixin.FeatTransMixin, ObjTransComp):
-    pass
-
-class FeatObjMergeComp(mixin.FeatMergeMixin, ObjTransComp):
-    pass
-
-class SplitComp(mixin.SplitMixin, FunComp):
-
-    def __init__(self, fun_with_arg):
-        super(SplitComp, self).__init__(fun_with_arg)
-        self._fit_func = None
-
-    def _split(self, X, y, index):
-        self._log_func()
-        ret = self._obj(X, y, *self._args, **self._opt)
-        #TODO: not support index yet
-        return ret + [None, None]
-
-class PartSplitComp(mixin.PartSplitMixin, FunComp):
-
-    def __init__(self, fun_with_arg, part_key=lambda x:x, obj_return_value=True):
-        super(PartSplitComp, self).__init__(fun_with_arg)
-        self._fit_func = None
-        self._part_key = part_key
-        self._obj_return_value = obj_return_value
-
-    def _get_labels(self, data, partition):
-        return np.array(self._part_key(partition.X)), partition.index
-
-    def _split_labels_index(self, labels):
-        keys = np.unique(labels)
-        self._log_func()
-        tk, vk = self._obj(keys, *self._args, **self._opt)
-        if self._obj_return_value:
-            tk = self._value_to_index(tk, labels)
-            vk = self._value_to_index(vk, labels)
-        return tk, vk
 
 
 class ScoreComp(DsTransComp):

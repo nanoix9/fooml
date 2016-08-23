@@ -16,7 +16,7 @@ class BaseMixin(object):
         self.fit(data)
         return self.trans(data)
 
-class TransMixin(BaseMixin):
+class ApplyMixin(BaseMixin):
 
     def fit(self, data):
         return self._apply(data, self._fit_func)
@@ -31,18 +31,18 @@ class TransMixin(BaseMixin):
     def trans(self, data):
         return self._apply(data, self._trans_func)
 
-class TargTransMixin(TransMixin):
+class TargMapMixin(ApplyMixin):
 
     def _apply(self, data, func):
         return dataset.mapy(func, data)
 
-class FeatTransMixin(TransMixin):
+class FeatMapMixin(ApplyMixin):
 
     def _apply(self, data, func):
         ds_new = dataset.mapx(func, data)
         return ds_new
 
-class FeatMergeMixin(TransMixin):
+class FeatMergeMixin(ApplyMixin):
 
     def _apply(self, data, func):
         return dataset.mergex(func, data)
@@ -55,7 +55,7 @@ class SplitMixin(BaseMixin):
         elif not isinstance(data, dataset.dsxy):
             raise TypeError('data is not dsxy type')
         X, y = data
-        Xt, Xv, yt, yv, it, iv = self._split(X, y, data.index)
+        Xt, Xv, yt, yv, it, iv = self._split(X, y, data.get_index())
         return dataset.dstv(dataset.dsxy(Xt, yt, it), dataset.dsxy(Xv, yv, iv))
 
     def trans(self, data):
@@ -104,19 +104,19 @@ class PartSplitMixin(SplitMixin):
     def __get_split_index(self, main_data, labels, label_index, by):
         self.__validate_data(main_data, labels, label_index)
         it_label, iv_label = self._split_labels_index(labels)
-        return self.__align_index(it_label, main_data.index, label_index), \
-                self.__align_index(iv_label, main_data.index, label_index)
+        return self.__align_index(it_label, main_data.get_index(), label_index), \
+                self.__align_index(iv_label, main_data.get_index(), label_index)
 
     def __iter_split_index(self, main_data, labels, label_index, by):
         self.__validate_data(main_data, labels, label_index)
         for it_label, iv_label in self._split_labels_index(labels):
-            yield self.__align_index(it_label, main_data.index, label_index), \
-                   self.__align_index(iv_label, main_data.index, label_index)
+            yield self.__align_index(it_label, main_data.get_index(), label_index), \
+                   self.__align_index(iv_label, main_data.get_index(), label_index)
 
     def __align_index(self, idx_label, data_index, label_index):
+        #print data_index, label_index
         if data_index is None or label_index is None:
             return idx_label
-        #print tk, vk
         label_index_set = set(label_index[idx_label])
         idx_data = np.tile(False, data_index.shape)
         for i, idx in enumerate(data_index):
@@ -134,7 +134,7 @@ class PartSplitMixin(SplitMixin):
         return np.array(idx)
 
     def __xx_align_index(self, idx_label, idx_data, label_index):
-        index = main_data.index
+        index = main_data.get_index()
         if index is None or label_index is None:
             return tk, vk
         #print tk, vk
