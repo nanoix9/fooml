@@ -27,6 +27,15 @@ def align_index(df, df_base):
         #print idx
         return df.reindex(idx, level=level)
 
+def merge(*x):
+    if len(x) == 1:
+        return x[0]
+    if not all(isinstance(xi, type(x[0])) for xi in x):
+        raise TypeError('all dataset for merging should be the same type')
+    if isinstance(x[0], csr_matrix):
+        return hstack(tuple(x), format='csr')
+
+
 class Dummy(object):
 
     def __init__(self, key=None, cols=None, sparse=False, **kwds):
@@ -73,11 +82,7 @@ class Dummy(object):
         return self._merge_all(dummy_vars)
 
     def _merge_all(self, dummy_vars):
-        if len(dummy_vars) == 1:
-            return dummy_vars[0]
-        else:
-            if self._sparse == 'csr':
-                return hstack(tuple(dummy_vars), format='csr')
+        return merge(*dummy_vars)
 
     def _get_row_index(self, df, df_idx):
         if self._key is None or isinstance(self._key, basestring):
