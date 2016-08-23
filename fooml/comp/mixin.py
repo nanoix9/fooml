@@ -3,6 +3,7 @@
 
 import sys
 import numpy as np
+import pandas as pd
 from fooml import dataset
 from fooml.dt import slist
 from fooml import util
@@ -38,7 +39,13 @@ class TargTransMixin(TransMixin):
 class FeatTransMixin(TransMixin):
 
     def _apply(self, data, func):
-        return dataset.mapx(func, data)
+        ds_new = dataset.mapx(func, data)
+        return ds_new
+
+class FeatMergeMixin(TransMixin):
+
+    def _apply(self, data, func):
+        return dataset.mergex(func, data)
 
 class SplitMixin(BaseMixin):
 

@@ -13,6 +13,20 @@ from fooml import util
 from fooml.log import logger
 
 
+class MyComp(comp.Comp):
+
+    def __init__(self, obj):
+        super(MyComp, self).__init__(obj)
+
+    def fit(self, *args, **kwds):
+        return self._obj.fit(*args, **kwds)
+
+    def fit_trans(self, *args, **kwds):
+        return self._obj.fit_trans(*args, **kwds)
+
+    def trans(self, *args, **kwds):
+        return self._obj.trans(*args, **kwds)
+
 class FunComp(comp.StatelessComp):
 
     def __init__(self, fun_with_arg):
@@ -27,7 +41,7 @@ class FunComp(comp.StatelessComp):
             args = []
             opt = {}
         super(FunComp, self).__init__(fun)
-        self._args = args
+        self._args = tuple(args)
         self._opt = opt
 
     def __repr__(self):
@@ -92,17 +106,39 @@ class FuncTransComp(FunComp):
         super(FuncTransComp, self).__init__(fun_with_arg)
         self._fit_func = None
 
-    def _trans_func(self, data):
+    def _trans_func(self, *data):
         self._log_func()
-        return self._obj(data, *self._args, **self._opt)
+        #print data, self._args
+        return self._obj(*(data + self._args), **self._opt)
 
-    def _fit_trans_func(self, data):
-        return self._trans_func(data)
+    def _fit_trans_func(self, *data):
+        return self._trans_func(*data)
 
 class TargTransComp(mixin.TargTransMixin, FuncTransComp):
     pass
 
 class FeatTransComp(mixin.FeatTransMixin, FuncTransComp):
+    pass
+
+class FeatMergeComp(mixin.FeatMergeMixin, FuncTransComp):
+    pass
+
+class ObjTransComp(comp.Comp):
+
+    def __init__(self, obj):
+        super(ObjTransComp, self).__init__(obj)
+        self._fit_func = None
+
+    def _trans_func(self, *data):
+        return self._obj.trans(*data)
+
+    def _fit_trans_func(self, *data):
+        return self._obj.fit_trans(*data)
+
+class FeatObjTransComp(mixin.FeatTransMixin, ObjTransComp):
+    pass
+
+class FeatObjMergeComp(mixin.FeatMergeMixin, ObjTransComp):
     pass
 
 class SplitComp(mixin.SplitMixin, FunComp):

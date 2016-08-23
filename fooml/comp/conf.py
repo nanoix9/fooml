@@ -72,6 +72,9 @@ def __get_from_config(config, module, name):
 __default_config = {
         'binclass': (misc.TargTransComp, 'fooml.proc', 'binclass'),
         'decide': (misc.DecideComp, 'fooml.proc', 'decide'),
+        #'dummy': (misc.MyComp, 'fooml.proc', 'Dummy'),
+        'dummy': (misc.FeatObjMergeComp, 'fooml.proc', 'Dummy'),
+        'align_index': (misc.FeatMergeComp, 'fooml.proc', 'align_index'),
 
         'vgg_preproc': (misc.FeatTransComp, 'fooml.comp.special', 'vgg_preproc'),
         'vgg19': (kr.Clf, 'fooml.comp.special', 'vgg19'),

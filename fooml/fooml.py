@@ -87,6 +87,7 @@ class FooML(Model):
         self._outputs = []
         self._output_opts = {}
         self._use_data_cache = False
+        self._data_home = None
         self._out_dir = settings.OUT_DIR
         self._data_load_routine = []
 
@@ -101,34 +102,46 @@ class FooML(Model):
         else:
             raise ValueError('only support Markdown reporter yet')
 
+    def set_data_home(self, path):
+        self._data_home = path
+
     def use_data(self, data, **kwds):
         name = data
         ds = dataset.load_data(data, **kwds)
         self._report('using data "%s"' % name)
-        self.add_data(ds, name=name)
+        return self.add_data(ds, name=name)
 
     def load_csv(self, name, path, **opt):
         ds = self._get_data_from_cache(name)
         if ds is None:
             self._report('no data "{}" in cache, load original data'.format(name))
-            ds = dataset.load_csv(path, **opt)
+            ds = dataset.load_csv(self._get_data_path(path), **opt)
             self._set_data_to_cache(name, ds)
         else:
             self._report('load data "{}" from cache'.format(name))
-        self.add_data(ds, name=name)
+        return self.add_data(ds, name=name)
 
-    def load_image_grouped(self, name, path=None, train_path=None, test_path=None, **opt):
+    def _get_data_path(self, path):
+        if self._data_home:
+            return os.path.join(self._data_home, path)
+        else:
+            return path
+
+    def load_image(self, name, path=None, train_path=None, test_path=None, \
+            train_type='flat', test_type='flat', **opt):
         ds = self._get_data_from_cache(name)
 
         if ds is None:
+            load_train = self._get_image_loader(train_type)
             self._report('no data "{}" in cache, load original data'.format(name))
             if path is not None:
                 train_path = os.path.join(path, 'train')
                 test_path = os.path.join(path, 'test')
             #ds = dataset.load_image(image_path, target_path, sample_id, target)
-            ds_train = dataset.load_image_grouped(train_path, **opt)
+            ds_train = load_train(train_path, **opt)
             if test_path is not None:
-                ds_test = dataset.load_image_flat(test_path, **opt)
+                load_test = self._get_image_loader(test_type)
+                ds_test = load_test(test_path, **opt)
                 ds = (ds_train, ds_test)
             else:
                 ds_test = None
@@ -139,7 +152,17 @@ class FooML(Model):
 
         self.add_data(ds, name=name)
 
-    def add_data(self, data, test=None, name='data'):
+    def _get_image_loader(self, type):
+        if type == 'flat':
+            return dataset.load_image_flat
+        elif type == 'grouped':
+            return dataset.load_image_grouped
+        elif type == 'patt':
+            return dataset.load_image_patt
+        else:
+            raise ValueError()
+
+    def add_data(self, data, name='data'):
         if isinstance(data, (str, unicode)):
             name = data
             ds = dataset.load_data(data)
@@ -155,10 +178,12 @@ class FooML(Model):
         else:
             self._ds_train[name] = ds
         #print self._ds_train
+        return self
 
     def load_data_now(self):
         for func in self._data_load_routine:
             func()
+        return self
 
     def get_train_data(self, name):
         return self._ds_train[name]
@@ -312,6 +337,14 @@ def feat_trans(name, obj, args=[], opt={}, comp_opt={}):
 def inv_trans(name, another):
     inv_comp = factory.create_inv_trans(another)
     return new_comp(name, inv_comp)
+
+def feat_merge(name, obj, args=[], opt={}, comp_opt={}):
+    if isinstance(obj, comp.Comp):
+        return obj
+    elif hasattr(obj, '__call__'):
+        return new_comp(name, misc.FeatMergeComp((obj, args, opt), **comp_opt))
+    else:
+        raise TypeError()
 
 def classifier(name, acomp, package='sklearn', proba=None):
     return new_comp(name, acomp, package=package, comp_opt=dict(proba=proba))

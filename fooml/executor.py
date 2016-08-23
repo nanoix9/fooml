@@ -165,8 +165,6 @@ class Executor(object):
             curr_task_no = pending.popleft()
             c_name, c_entry = task_seq[curr_task_no]
             curr_input = input_buff[curr_task_no]
-            if not self._is_input_ready(curr_input):
-                raise ValueError('Task %s does not recieve all input data' % c_name)
             if c_name == Executor.__OUTPUT__:
                 self._report('Task %d Ouput: assign output results' % curr_task_no)
                 self._report_leveldown()
@@ -174,8 +172,10 @@ class Executor(object):
                 ret = curr_input
                 self._report_levelup()
             else:
+                if not self._is_input_ready(curr_input):
+                    raise ValueError('Task %s does not recieve all input data' % c_name)
                 c_obj, c_inp, c_out = c_entry
-                self._report('Task %d: train component "%s", input=%s, output=%s' \
+                self._report('Task %d: train component "%s", input="%s", output="%s"' \
                     % (curr_task_no, c_name, c_inp, c_out))
                 self._report_leveldown()
                 self._report('Summary of input of "%s": %s' % (c_name, c_inp))

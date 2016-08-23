@@ -3,6 +3,7 @@
 
 import sys
 import inspect
+import pandas as pd
 
 def get_type_fullname(obj):
     return obj.__class__.__module__ + '.' + obj.__class__.__name__
@@ -99,6 +100,27 @@ def pop_layer(model):
     model.built = False
 
 
+######### pandas #######
+def get_index_or_col(df, name):
+    #print df, name
+    #print df.index.names
+    if isinstance(name, basestring) and name in df.index.names:
+        return df.index.get_level_values(name)
+    else:
+        return df[name]
+
+def get_index_uniq_values(df, name):
+    if name is None:
+        return df.index
+    elif isinstance(df.index, pd.MultiIndex):
+        return pd.Index(df.index.levels[df.index.names.index(name)], name=name)
+    elif isinstance(df.index, pd.Index):
+        if df.index.name == name:
+            return df.index
+        else:
+            raise RuntimeError('index name does not match')
+    else:
+        raise TypeError()
 
 ######## tests
 

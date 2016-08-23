@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import dataset
 import util
+import scipy.sparse as sp
 
 def summary(data):
     if isinstance(data, dataset.dsxy):
@@ -128,6 +129,11 @@ def _summary(data):
             #raise ValueError('data with more than 2 dimension is not supported yet')
             #df = pd.DataFrame(data.reshape(data.shape[0], -1))
             df = pd.DataFrame(data.flatten())
+    elif isinstance(data, sp.csr_matrix):
+        nz = data.count_nonzero()
+        cnt = data.shape[0] * data.shape[1]
+        ret.append('sparsity: %d(nonzero)/%d(total) = %f' % (nz, cnt, float(nz)/cnt))
+        return ret
     else:
         raise ValueError('unknown data type: %s' % type(data))
 

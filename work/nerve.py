@@ -21,7 +21,7 @@ do_cv = True
 #img_size=(64, 64)
 img_size = (224, 224)
 color_type = 1
-color_type = 3
+#color_type = 3
 
 batch_size = 128
 batch_size = 16
@@ -41,43 +41,31 @@ def main(test):
     foo.report_to('report.md')
 
     data_suffix= '_{}x{}x{}'.format(img_size[0], img_size[1], color_type)
-    data_name = 'drive' + data_suffix
+    data_name = 'nerve' + data_suffix
     if test:
-        data_name = 'drive_sample' + data_suffix
+        data_name = 'nerve_sample' + data_suffix
     #data_name = 'mnist'
-    if data_name.startswith('drive_sample'):
+    if data_name.startswith('nerve_sample'):
         global nb_epoch
         nb_epoch = 1
-        foo.load_image(data_name, path='/vola1/scndof/data/drive/sample', train_type='grouped', resize=img_size, color_type=color_type)
-    elif data_name.startswith('drive'):
+        foo.load_image(data_name, path='/vola1/scndof/data/nerve/sample',
+                train_type='patt',
+                feature_pattern=r'^\d+_\d+\.tif$',
+                get_target=lambda x: x.replace('.tif', '_mask.tif'),
+                resize=img_size, color_type=color_type)
+    elif data_name.startswith('nerve'):
         foo.enable_data_cache()
-        #foo.load_image_grouped(data_name, train_path='/vola1/scndof/data/drive/train', resize=img_size)
-        foo.load_image(data_name, path='/vola1/scndof/data/drive', train_type='grouped', resize=img_size, color_type=color_type)
-    #sys.exit()
-    elif data_name == 'mnist':
-        img_size = (224, 224)
-        color_type = 1
-        foo.use_data(data_name)
 
-    data_driver_id = 'driver_id'
-    foo.load_csv(data_driver_id, path='/vola1/scndof/data/drive/driver_imgs_list.csv', index_col=2)
+    #data_nerver_id = 'nerver_id'
+    #foo.load_csv(data_nerver_id, path='/vola1/scndof/data/nerve/nerver_imgs_list.csv', index_col=2)
 
     ds_train = foo.get_train_data(data_name)
     #print ds_train.index
-    #sys.exit()
-    X_train, y_train = dataset.get_train(ds_train)
+    sys.exit()
+
+    X_train, _ = dataset.get_train(ds_train)
     img_size = X_train.shape[1:3]
     print img_size
-
-    if len(y_train.shape) <= 1 and data_name != 'mnist':
-        le = fooml.trans('le', 'labelencoder')
-    else:
-        le = fooml.nop()
-
-    if len(y_train.shape) <= 1:
-        cate = fooml.trans('cate', 'to_categorical', args=[10])
-    else:
-        cate = fooml.nop()
 
     if len(X_train.shape) < 4 or color_type == 1:
         reshape = fooml.feat_trans('reshape1',
@@ -115,8 +103,8 @@ def main(test):
     if not do_cv:
         data_split = 'data_split'
         #foo.add_trans('split', 'split', input=data_reshape, output=data_split, opt=dict(test_size=0.2))
-        split = fooml.splitter('split', partition='driver_id', part_key=lambda df: df.subject, opt=dict(test_size=0.2))
-        foo.add_comp(split, input=[data_reshape, 'driver_id'], output=data_split)
+        split = fooml.splitter('split', partition='nerver_id', part_key=lambda df: df.subject, opt=dict(test_size=0.2))
+        foo.add_comp(split, input=[data_reshape, 'nerver_id'], output=data_split)
         #data_split = data_reshape
 
         #foo.add_classifier('rand', 'random', input=data_reshape, output=[pred, proba], proba='with')
@@ -135,10 +123,10 @@ def main(test):
         sub.add_comp(nncls, input=data_reshape, output=proba)
         sub.add_comp(logloss, input=proba, output='logloss')
         cv = fooml.cross_validate('cv', sub, k=2, type='labelkfold', \
-                label='driver_id', label_key=lambda df: df.subject, \
+                label='nerver_id', label_key=lambda df: df.subject, \
                 use_dstv=True)
 
-        foo.add_comp(cv, input=[data_reshape, 'driver_id'])
+        foo.add_comp(cv, input=[data_reshape, 'nerver_id'])
 
     foo.show()
     foo.desc_data()

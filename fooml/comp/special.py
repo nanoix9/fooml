@@ -5,11 +5,6 @@ import sys
 from fooml import util
 from fooml.log import logger
 
-from keras.models import Sequential
-from keras.layers.core import Dense, Dropout, Activation, Flatten
-from keras.layers.convolutional import Convolution2D, MaxPooling2D, ZeroPadding2D
-from keras.optimizers import SGD, Adam
-
 def vgg_preproc():
     def _vgg_preproc(data):
         data = data.astype('float32')
@@ -21,6 +16,11 @@ def vgg_preproc():
     return _vgg_preproc
 
 def vgg16(nb_class=10, weight_path=None):
+    from keras.models import Sequential
+    from keras.layers.core import Dense, Dropout, Activation, Flatten
+    from keras.layers.convolutional import Convolution2D, MaxPooling2D, ZeroPadding2D
+    from keras.optimizers import SGD, Adam
+
     img_rows, img_cols = 224, 224
     color_type = 3
 
@@ -111,6 +111,11 @@ def vgg16(nb_class=10, weight_path=None):
 
 
 def vgg19(nb_class=10, weight_path=None):
+    from keras.models import Sequential
+    from keras.layers.core import Dense, Dropout, Activation, Flatten
+    from keras.layers.convolutional import Convolution2D, MaxPooling2D, ZeroPadding2D
+    from keras.optimizers import SGD, Adam
+
     model = Sequential()
     model.add(ZeroPadding2D((1,1),input_shape=(3,224,224)))
     model.add(Convolution2D(64, 3, 3, activation='relu'))

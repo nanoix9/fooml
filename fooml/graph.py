@@ -64,7 +64,7 @@ class CompGraph(object):
 
     def add_comp(self, name, acomp, inp, out):
         if name in self._comps:
-            raise ValueError('Component %s already exists!' %s)
+            raise ValueError('Component %s already exists!' % name)
         self._comps[name] = _entry(acomp, inp, out)
         inp_list = slist.to_list(inp)
         out_list = slist.to_list(out)
@@ -145,9 +145,12 @@ class CompGraph(object):
                     stack.extend(slist.to_list(entry.out))
                     logger.debug('+ current output buffer of graph: %s' % out_buff)
         if any(d is None for n, d in out_buff.iteritems()):
-            raise ValueError('Nothing is connected to output(s): %s' \
+            #raise ValueError
+            logger.warning('Nothing is connected to output(s): %s' \
                 % filter(lambda n: out_buff[n] is None, out_buff.keys()))
-        ret = util.gets_from_dict(out_buff, self._out)
+            ret = None
+        else:
+            ret = util.gets_from_dict(out_buff, self._out)
         logger.debug('graph final output: %s' % ret)
         return ret
 
