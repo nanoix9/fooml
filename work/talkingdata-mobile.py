@@ -42,9 +42,9 @@ def main():
     ga_dummy = fooml.trans('dummy_ga', 'dummy', opt=dict(cols=['brand', 'model'], sparse='csr'))
     merge_app = fooml.feat_merge('merge_app', _merge_app)
     #app_align = fooml.trans('app_align', 'align_index')
-    dummy_app = fooml.trans('dummy_app', 'dummy', opt=dict(key='device_id', cols=['app_id'], sparse='csr'))
+    dummy_app = fooml.new_comp('dummy_app', 'dummy', opt=dict(key='device_id', cols=['app_id'], sparse='csr'))
     merge_label = fooml.feat_merge('merge_label', _merge_label)
-    dummy_label = fooml.trans('dummy_label', 'dummy', opt=dict(key='device_id', cols=['label_id'], sparse='csr'))
+    dummy_label = fooml.new_comp('dummy_label', 'dummy', opt=dict(key='device_id', cols=['label_id'], sparse='csr'))
     merge_all = fooml.new_comp('merge_all', 'merge')
 
     #foo.add_comp(drop_dup, 'phone', 'phone_uniq')
