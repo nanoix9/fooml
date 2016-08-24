@@ -70,7 +70,7 @@ def main(test):
     print img_size
 
     if len(y_train.shape) <= 1 and data_name != 'mnist':
-        le = fooml.trans('le', 'labelencoder')
+        le = fooml.trans('le', 'targetencoder')
     else:
         le = fooml.nop()
 

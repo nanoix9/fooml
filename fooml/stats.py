@@ -115,7 +115,7 @@ def _summary(data):
            'size: %s' % str(data.shape)]
 
     dtype = None
-    if isinstance(data, pd.DataFrame):
+    if isinstance(data, (pd.Series, pd.DataFrame)):
         df = data
     elif isinstance(data, np.ndarray):
         dtype = data.dtype

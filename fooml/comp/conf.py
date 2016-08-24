@@ -86,7 +86,7 @@ __sklearn_config = {
         'split': (misc.SplitComp, 'cross_validation', 'train_test_split'),
         'partsplit': (misc.PartSplitComp, 'cross_validation', 'train_test_split'),
 
-        'labelencoder': (sk.TargMap, 'preprocessing', 'LabelEncoder'),
+        'targetencoder': (sk.TargMap, 'preprocessing', 'LabelEncoder'),
 
         'LR': (sk.Clf, 'linear_model', 'LogisticRegression'),
         'DecisionTree': (sk.Clf, 'tree', 'DecisionTreeClassifier'),

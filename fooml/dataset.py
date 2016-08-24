@@ -128,13 +128,18 @@ def load_data(name, **kwds):
     return load_toy(name, **kwds)
 
 def load_csv(path, index_col=None, target=None, feature=None, **kwds):
+    y = None
+    index = None
     df = pd.read_csv(path, index_col=index_col, encoding='utf8', **kwds)
     #if index_col:
     #    index = np.array(df.index)
     #else:
     #    index = None
-    index = None
-    return dsxy(df, None, index=index)
+    if target is not None:
+        y = df[target]
+    #print df
+    #print y
+    return dsxy(df, y, index=index)
 
 def load_image(image_path, target_path, sample_id, target=None):
     return

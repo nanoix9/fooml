@@ -86,14 +86,14 @@ class Clf(SkComp):
             return cy
 
     def _predict_proba(self, X):
-        if hasattr(self._obj, 'decision_function'):
-            score = self._obj.decision_function(X)
-        else:
-            logger.info('no "decision_function" found, use "predict_proba" instead')
+        try:
             score = self._obj.predict_proba(X)
             # if it is a binary classification problem, return a 1-D array
             if score.shape[1] == 2:
                 score = score[:,1]
+        except:
+            logger.info('fail to call "predict_proba", use "decision_function" instead')
+            score = self._obj.decision_function(X)
         #print '>>>>>', score
         #print '>>>>>', self._obj.classes_
         #sys.exit()
