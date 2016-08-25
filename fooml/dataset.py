@@ -23,6 +23,12 @@ except ImportError:
 
 ds_train_test_xy_t = c.namedtuple('ds_train_test_xy_t', 'train, test')
 
+def _get_len(thing):
+    try:
+        return thing.shape[0]
+    except:
+        return len(thing)
+
 class dataset(object):
 
     def __repr__(self):
@@ -36,14 +42,18 @@ class dsxy(dataset):
     def __init__(self, X, y=None, index=None):
         self.X = X
         self.y = y
-        self.index = index
+        if isinstance(X, (pd.DataFrame, pd.Series)):
+            # use X's index as dataset's index. Ignore input index
+            self.index = None
+        else:
+            self.index = index
 
     def __iter__(self):
         yield self.X
         yield self.y
 
     def nsamples(self):
-        return len(self.X)
+        return _get_len(self.X)
 
     def get_index(self):
         #raise NotImplementedError()
@@ -64,7 +74,7 @@ class dssy(dataset):
         yield self.y
 
     def nsamples(self):
-        return len(self.score)
+        return _get_len(self.score)
 
 class dscy(dataset):
 
@@ -78,7 +88,7 @@ class dscy(dataset):
         yield self.y
 
     def nsamples(self):
-        return len(self.cls)
+        return _get_len(self.cls)
 
 class dstv(dataset):
 

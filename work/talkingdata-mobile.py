@@ -61,12 +61,18 @@ def main():
     foo.add_comp(dummy_label, ['ds_device_label', 'ds_ga_merge'], 'ds_label_dummy')
     foo.add_comp(merge_all, ['ds_ga_dummy', 'ds_app_dummy', 'ds_label_dummy'], 'ds_all_dummy')
     foo.add_comp(le, 'ds_all_dummy', 'ds_targ_encoded')
-    foo.add_comp(lr, 'ds_targ_encoded', 'y_proba')
-    foo.add_comp(logloss, 'y_proba')
+
+    cv_clf = fooml.submodel('cv_clf', input='ds_targ_encoded', output='ds_logloss')
+    cv_clf.add_comp(lr, 'ds_targ_encoded', 'y_proba')
+    cv_clf.add_comp(logloss, 'y_proba', 'ds_logloss')
+    cv = fooml.cross_validate('cv', cv_clf, k=3)
+
+    foo.add_comp(cv, 'ds_targ_encoded')
 
     #foo.desc_data()
     foo.compile()
-    foo.run_train()
+    #foo.run_train()
+    foo.run()
 
     return
 

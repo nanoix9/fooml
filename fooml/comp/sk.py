@@ -143,8 +143,9 @@ class CV(group.ExecMixin, mixin.PartSplitMixin, SkComp):
         out = []
         out_names = self._exec._cgraph._graph._out
         for i, ds in enumerate(self._iter_split(data)):
-            logger.info('cross validation round %d out of %d: %d(train)/%d(test) samples' \
-                    % (i+1, self.k, ds.train.nsamples(), ds.valid.nsamples()))
+            ntrain, ntest = ds.train.nsamples(), ds.valid.nsamples()
+            logger.info('cross validation round %d out of %d: %d(train)/%d(test)/%d(total) samples' \
+                    % (i+1, self.k, ntrain, ntest, ntrain + ntest))
             if self._use_dstv:
                 ret_train = self._exec.run_train(ds)
                 ret_test = None

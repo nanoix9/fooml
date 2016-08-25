@@ -46,7 +46,13 @@ class Dummy(object):
         self._kwds = kwds
         self._le_dict = {}
 
+    def trans(self, *x):
+        return self._fit_or_trans(x, mode='trans')
+
     def fit_trans(self, *x):
+        return self._fit_or_trans(x, mode='fit_trans')
+
+    def _fit_or_trans(self, x, mode):
         if len(x) == 2:
             x_main = x[0]
             x_idx = x[1]
@@ -55,13 +61,13 @@ class Dummy(object):
             x_idx = x[0]
 
         if isinstance(x_main, pd.DataFrame) and isinstance(x_idx, pd.DataFrame):
-            return self._fit_trans_df(x_main, x_idx)
+            return self._fit_or_trans_df(x_main, x_idx, mode=mode)
         elif isinstance(x_main, np.ndarray):
-            return self._fit_trans_np(x_main, x_idx)
+            return self._fit_or_trans_np(x_main, x_idx, mode=mode)
         else:
             raise TypeError()
 
-    def _fit_trans_df(self, df_main, df_idx):
+    def _fit_or_trans_df(self, df_main, df_idx, mode):
         row_idx = self._get_row_index(df_main, df_idx)
         not_na_idx = row_idx.notnull()
         #print not_na_idx
@@ -71,9 +77,14 @@ class Dummy(object):
         #print df_main
         dummy_vars = []
         for col in self._cols:
-            le = self._le_dict.setdefault(col, skpp.LabelEncoder())
             col_values = util.get_index_or_col(df_main, col)
-            label_idx = le.fit_transform(col_values)
+            le = self._le_dict.setdefault(col, skpp.LabelEncoder())
+            if mode == 'fit_trans':
+                label_idx = le.fit_transform(col_values)
+            elif mode == 'fit':
+                label_idx = le.fit(col_values)
+            elif mode == 'trans':
+                label_idx = le.transform(col_values)
             #print df_main.shape, row_idx.shape, label_idx.shape
             if self._sparse == 'csr':
                 dv = csr_matrix((np.ones(df_main.shape[0]), (row_idx, label_idx)))
