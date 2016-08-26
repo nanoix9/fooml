@@ -36,6 +36,10 @@ class slist(object):
         return slist.call_obj(obj, list.index, elem)
 
     @staticmethod
+    def indices(obj, elems):
+        return slist.map(lambda e: slist.index(obj, e), elems)
+
+    @staticmethod
     def str_index(idx):
         if idx is None:
             return ''
@@ -62,6 +66,10 @@ class slist(object):
             if not slist._is_coll(obj):
                 raise ValueError('index is not None but object is not a list or tuple')
             return obj[idx]
+
+    @staticmethod
+    def slice(obj, idx):
+        return slist.map(lambda i: slist.get(obj, i), idx)
 
     #def enumerate_maybe_list(obj, *args):
     @staticmethod
@@ -143,9 +151,27 @@ def test_slist2():
     print slist.ones_like(list('ab'))
     print slist.index(['a', 0, 1], 1)
 
+def test_indices():
+    print slist.indices('a', 'a')
+    print slist.indices('ab', ['ab'])
+    print slist.indices(['ab', 'c', 'x'], 'ab')
+    print slist.indices(['ab', 'c', 'x'], ['ab'])
+    print slist.indices(['ab', 'c', 'x'], ['ab', 'x'])
+    print slist.indices(['ab', 'c', 'x'], ['ab', 'y'])
+
+def test_slice():
+    print slist.slice(['a'], 0)
+    print slist.slice(['a', 'b'], 1)
+    print slist.slice(['a', 'b'], [1])
+    print slist.slice(['a', 'b', 'xy'], [1, 2])
+    print slist.slice(['a', 'b', 'xy'], [1, 3])
+    print slist.slice('a', 0)
+
 def main():
-    test_slist()
-    test_slist2()
+    #test_slist()
+    #test_slist2()
+    #test_indices()
+    test_slice()
     return
 
 if __name__ == '__main__':
