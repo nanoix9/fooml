@@ -88,10 +88,10 @@ class FooML(Model):
         self._output_opts = {}
         self._use_data_cache = False
         self._data_home = None
-        self._out_dir = settings.OUT_DIR
         self._data_load_routine = []
 
         self.add_reporter(report.LogReporter())
+        self.set_output_dir(os.path.join(settings.OUT_DIR, self._name))
 
     def add_reporter(self, reporter):
         self._reporter.add_reporter(reporter)
@@ -105,43 +105,29 @@ class FooML(Model):
     def set_data_home(self, path):
         self._data_home = path
 
+    def set_output_dir(self, path):
+        self._out_dir = path
+
     def use_data(self, data, **kwds):
         name = data
         ds = dataset.load_data(data, **kwds)
         self._report('using data "%s"' % name)
         return self.add_data(ds, name=name)
 
-    def load_csv(self, name, path, **opt):
-        ds = self._get_data_from_cache(name)
-        if ds is None:
-            self._report('no data "{}" in cache, load original data'.format(name))
-            ds = dataset.load_csv(self._get_data_path(path), **opt)
-            self._set_data_to_cache(name, ds)
-        else:
-            self._report('load data "{}" from cache'.format(name))
-        return self.add_data(ds, name=name)
-
-    def _get_data_path(self, path):
-        if self._data_home:
-            return os.path.join(self._data_home, path)
-        else:
-            return path
-
-    def load_image(self, name, path=None, train_path=None, test_path=None, \
-            train_type='flat', test_type='flat', **opt):
+    def load_train_test(self, name, path=None, train_path=None, test_path=None, \
+            train_type='csv', test_type='csv', train_opt={}, test_opt={}):
         ds = self._get_data_from_cache(name)
 
         if ds is None:
-            load_train = self._get_image_loader(train_type)
+            load_train = self._get_data_loader(train_type)
             self._report('no data "{}" in cache, load original data'.format(name))
             if path is not None:
                 train_path = os.path.join(path, 'train')
                 test_path = os.path.join(path, 'test')
-            #ds = dataset.load_image(image_path, target_path, sample_id, target)
-            ds_train = load_train(train_path, **opt)
+            ds_train = load_train(self._get_data_path(train_path), **train_opt)
             if test_path is not None:
-                load_test = self._get_image_loader(test_type)
-                ds_test = load_test(test_path, **opt)
+                load_test = self._get_data_loader(test_type)
+                ds_test = load_test(self._get_data_path(test_path), **test_opt)
                 ds = (ds_train, ds_test)
             else:
                 ds_test = None
@@ -150,15 +136,34 @@ class FooML(Model):
         else:
             self._report('load data "{}" from cache'.format(name))
 
-        self.add_data(ds, name=name)
+        return self.add_data(ds, name=name)
 
-    def _get_image_loader(self, type):
+    def load_csv(self, name, path=None, train_path=None, test_path=None, target=None, **opt):
+        train_opt = dict(opt)
+        train_opt['target'] = target
+        return self.load_train_test(name, path=path, train_path=train_path, test_path=test_path, \
+                train_type='csv', test_type='csv', train_opt=train_opt, test_opt=opt)
+
+    def _get_data_path(self, path):
+        if self._data_home and not path.startswith(os.path.sep):
+            return os.path.join(self._data_home, path)
+        else:
+            return path
+
+    def load_image(self, name, path=None, train_path=None, test_path=None, \
+            train_type='flat', test_type='flat', **opt):
+        return self.load_train_test(name, path=path, train_path=train_path, test_path=test_path, \
+                train_type=train_type, test_type=test_type, train_opt=opt, test_opt=opt)
+
+    def _get_data_loader(self, type):
         if type == 'flat':
             return dataset.load_image_flat
         elif type == 'grouped':
             return dataset.load_image_grouped
         elif type == 'patt':
             return dataset.load_image_patt
+        elif type == 'csv':
+            return dataset.load_csv
         else:
             raise ValueError()
 
@@ -257,6 +262,10 @@ class FooML(Model):
             ds_name = slist.get(self._outputs, i)
             path, opt = self._get_opt_for_save(ds_name, 'csv')
             self._report('saving data "{}" to "{}"'.format(ds_name, path))
+            dir_path = os.path.dirname(path)
+            if not os.path.exists(dir_path):
+                logger.info('create output directory %s' % (dir_path))
+                os.mkdir(dir_path)
             dataset.save_csv(ds, path, opt)
         #print 'final output:\n', out
 
@@ -346,8 +355,10 @@ def feat_merge(name, obj, args=[], opt={}, comp_opt={}):
     else:
         raise TypeError()
 
-def classifier(name, acomp, package='sklearn', proba=None):
-    return new_comp(name, acomp, package=package, comp_opt=dict(proba=proba))
+def classifier(name, acomp, package='sklearn', proba=None, args=[], opt={}, comp_opt={}):
+    comp_opt_tmp = dict(comp_opt)
+    comp_opt_tmp['proba'] = proba
+    return new_comp(name, acomp, package=package, args=args, opt=opt, comp_opt=comp_opt_tmp)
 
 def nnet(name, nn, opt={}, train_opt={}):
     ''' Add nerual networks '''

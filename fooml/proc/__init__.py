@@ -68,26 +68,39 @@ class Dummy(object):
             raise TypeError()
 
     def _fit_or_trans_df(self, df_main, df_idx, mode):
-        row_idx = self._get_row_index(df_main, df_idx)
+        row_idx, nrows_out = self._get_row_index(df_main, df_idx)
         not_na_idx = row_idx.notnull()
         #print not_na_idx
         #print df_main
         row_idx = row_idx[not_na_idx]
         df_main = df_main[not_na_idx]
         #print df_main
+        if self._cols is None:
+            cols = df_main.columns
+        else:
+            cols = self._cols
         dummy_vars = []
-        for col in self._cols:
+        for col in cols:
+            #print df_main, col
             col_values = util.get_index_or_col(df_main, col)
             le = self._le_dict.setdefault(col, skpp.LabelEncoder())
             if mode == 'fit_trans':
                 label_idx = le.fit_transform(col_values)
+                nrows_seen = df_main.shape[0]
+                row_seen_idx = row_idx
             elif mode == 'fit':
                 label_idx = le.fit(col_values)
             elif mode == 'trans':
-                label_idx = le.transform(col_values)
+                seen_idx = np.in1d(col_values, le.classes_)
+                label_idx = le.transform(col_values[seen_idx])
+                nrows_seen = np.sum(seen_idx)
+                row_seen_idx = row_idx[seen_idx]
             #print df_main.shape, row_idx.shape, label_idx.shape
             if self._sparse == 'csr':
-                dv = csr_matrix((np.ones(df_main.shape[0]), (row_idx, label_idx)))
+                #dv = csr_matrix((np.ones(df_main.shape[0]), (row_idx, label_idx)))
+                #print row_idx
+                dv = csr_matrix((np.ones(nrows_seen), (row_seen_idx, label_idx)), \
+                        shape=(nrows_out, le.classes_.shape[0]))
             dummy_vars.append(dv)
         #print dummy_vars
         return self._merge_all(dummy_vars)
@@ -99,17 +112,20 @@ class Dummy(object):
         if self._key is None or isinstance(self._key, basestring):
             key_idx = util.get_index_uniq_values(df_idx, self._key)
             #print key_idx
-            df_idx_tmp = pd.DataFrame(dict(__ROWINDEX__=np.arange(len(key_idx))), index=key_idx)
+            nrows = len(key_idx)
             #print df_idx_tmp
+            idx_array = np.arange(nrows)
         else:
-            df_idx_tmp = self._key(df_idx)
+            idx_array = self._key(df_idx)
+            nrows = np.max(idx_array) + 1
 
+        df_idx_tmp = pd.DataFrame(dict(__ROWINDEX__=idx_array), index=key_idx)
         dftmp = df.merge(df_idx_tmp, how='left', left_index=True, right_index=True)
         #print dftmp
         row_idx = dftmp['__ROWINDEX__']
         #print row_idx
         #print row_idx
-        return row_idx
+        return row_idx, nrows
 
 
 def test_binclass():
@@ -117,8 +133,31 @@ def test_binclass():
     print a
     print binclass(a)
 
+def test_dummy():
+    dmy = Dummy(sparse='csr')
+    x = pd.DataFrame(dict(x=list('abcdeae')))
+    print x
+    y = dmy.fit_trans(x)
+    print y.shape, y
+    x2 = pd.DataFrame(dict(x=list('abxyb')))
+    print x2
+    y2 = dmy.trans(x2)
+    print y2.shape, y2
+
+    dmy = Dummy(key='idx', cols=['label'], sparse='csr')
+    index = pd.MultiIndex.from_product([[10, 20], ['foo', 'bar', 'fb']], names=['idx', 'label'])
+    x3 = pd.DataFrame(dict(x=list('abcdad')), index=index)
+    index2 = pd.MultiIndex.from_product([[10, 20], ['foo', 'bar', 'foobar']], names=['idx', 'label'])
+    x4 = pd.DataFrame(dict(x=list('abcebe')), index=index2)
+    print x3
+    y3 = dmy.fit_trans(x3)
+    print y3
+    y4 = dmy.trans(x4)
+    print y4
+
 def main():
-    test_binclass()
+    #test_binclass()
+    test_dummy()
     return
 
 if __name__ == '__main__':

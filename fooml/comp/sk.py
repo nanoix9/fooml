@@ -166,6 +166,8 @@ class CV(group.ExecMixin, mixin.PartSplitMixin, SkComp):
             outi.append('cross validation %d' % (i+1))
             outi.append(res_list)
             out.append(outi)
+        logger.info('cross validation done. train model on the whole dataset for testing')
+        self._exec.run_train(self._get_main_and_labels(data)[0])
         return dataset.desc(out)
 
     def trans(self, data):
