@@ -12,7 +12,7 @@ def summary(data):
     if isinstance(data, dataset.dsxy):
         xdesc = summary(data.X)
         ydesc = summary(data.y)
-        idesc = summary(data.index)
+        idesc = summary(data.get_index())
         desc = ['type: %s' % util.get_type_fullname(data),
                 'indices:',
                 idesc,
@@ -117,6 +117,10 @@ def _summary(data):
     dtype = None
     if isinstance(data, (pd.Series, pd.DataFrame)):
         df = data
+    elif isinstance(data, (pd.MultiIndex)):
+        df = pd.DataFrame(data)
+    elif isinstance(data, (pd.Index)):
+        df = pd.Series(data)
     elif isinstance(data, np.ndarray):
         dtype = data.dtype
         if len(data.shape) == 1:

@@ -60,7 +60,7 @@ def main(test):
         foo.use_data(data_name)
 
     data_driver_id = 'driver_id'
-    foo.load_csv(data_driver_id, path='/vola1/scndof/data/drive/driver_imgs_list.csv', index_col=2)
+    foo.load_csv(data_driver_id, train_path='/vola1/scndof/data/drive/driver_imgs_list.csv', index_col=2)
 
     ds_train = foo.get_train_data(data_name)
     #print ds_train.index

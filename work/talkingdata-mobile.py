@@ -30,7 +30,7 @@ def main():
     foo.set_data_home('/vola1/scndof/data/talkingdata-mobile')
     foo.enable_data_cache()
 
-    foo.load_csv('ga', 'gender_age_train.csv', target='group', index_col='device_id')
+    foo.load_csv('ga', train_path='gender_age_train.csv', test_path='gender_age_test.csv', target='group', index_col='device_id')
     foo.load_csv('phone', 'phone_brand_device_model.csv')
     foo.load_csv('events', 'events.csv', parse_dates=['timestamp'], index_col='event_id')
     foo.load_csv('appevents','app_events.csv', usecols=['event_id','app_id','is_active'], dtype={'is_active':bool})
@@ -46,7 +46,7 @@ def main():
     dummy_label = fooml.new_comp('dummy_label', 'dummy', opt=dict(key='device_id', cols=['label_id'], sparse='csr'))
     merge_all = fooml.new_comp('merge_all', 'merge')
     le = fooml.trans('targ_le', 'targetencoder')
-    lr = fooml.classifier('clf', 'LR', proba='only')
+    lr = fooml.classifier('clf', 'LR', proba='only', opt=dict(C=0.02, multi_class='multinomial',solver='lbfgs'))
     logloss = fooml.evaluator('logloss')
 
     #foo.add_comp(drop_dup, 'phone', 'phone_uniq')
@@ -62,12 +62,17 @@ def main():
     foo.add_comp(merge_all, ['ds_ga_dummy', 'ds_app_dummy', 'ds_label_dummy'], 'ds_all_dummy')
     foo.add_comp(le, 'ds_all_dummy', 'ds_targ_encoded')
 
-    cv_clf = fooml.submodel('cv_clf', input='ds_targ_encoded', output='ds_logloss')
+    cv_clf = fooml.submodel('cv_clf', input='ds_targ_encoded', output='y_proba')
     cv_clf.add_comp(lr, 'ds_targ_encoded', 'y_proba')
     cv_clf.add_comp(logloss, 'y_proba', 'ds_logloss')
-    cv = fooml.cross_validate('cv', cv_clf, k=3)
+    cv = fooml.cross_validate('cv', cv_clf, k=2)
 
-    foo.add_comp(cv, 'ds_targ_encoded')
+    #cv = fooml.cross_validate('cv', lr, k=2, evaluate=logloss)
+
+    foo.add_comp(cv, 'ds_targ_encoded', 'y_proba')
+
+    get_classes = lambda: foo.get_comp('targ_le')._obj.classes_
+    foo.save_output('y_proba', opt=dict(label='device_id', columns=get_classes))
 
     #foo.desc_data()
     foo.compile()

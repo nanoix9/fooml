@@ -343,7 +343,7 @@ def mapx(func, data):
     if isinstance(data, list):
         return [mapx(func, d) for d in data]
     elif isinstance(data, dsxy):
-        return dsxy(func(data.X), data.y, data.index)
+        return dsxy(func(data.X), data.y, data.get_index())
     elif isinstance(data, dstv):
         return dstv(mapx(func, data.train), mapx(func, data.valid))
     else:
@@ -356,7 +356,7 @@ def mapy(func, data):
         if data.y is None:
             return data
         else:
-            return dsxy(data.X, func(data.y), data.index)
+            return dsxy(data.X, func(data.y), data.get_index())
     elif isinstance(data, dscy):
         return dscy(func(data.c), __apply_maybe(func, data.y))
     elif isinstance(data, dstv):
@@ -373,7 +373,7 @@ def mergex(func, data):
     ds_main = data[0]
     Xs = [d.X for d in data]
     X_new = func(*Xs)
-    return dsxy(X_new, ds_main.y, ds_main.index)
+    return dsxy(X_new, ds_main.y, ds_main.get_index())
 
 def __apply_maybe(func, data):
     if data is None:
@@ -409,7 +409,7 @@ def split(data, it, iv):
     if not isinstance(data, dsxy):
         raise TypeError()
     X, y = data
-    index = data.index
+    index = data.get_index()
     if index is None:
         index = np.arange(X.shape[0])
     Xt = X[it]; yt = y[it]; tidx = index[it]
