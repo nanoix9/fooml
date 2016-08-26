@@ -121,9 +121,9 @@ class Eva(mixin.EvaMixin, SkComp):
     def _cal_func(self, y, score):
         return self._obj(y, score, *self.args, **self.opt)
 
-class CV(group.ExecMixin, mixin.PartSplitMixin, SkComp):
+class CV(group.EmbedMixin, mixin.PartSplitMixin, SkComp):
 
-    def __init__(self, obj, k=5, exe=None, \
+    def __init__(self, obj, k=5, model=None, eva=None, \
             label=None, label_key=lambda x:x,
             use_dstv=False):
         func, args, opt = obj
@@ -133,46 +133,58 @@ class CV(group.ExecMixin, mixin.PartSplitMixin, SkComp):
         self._label = label
         self._label_key = label_key
         self._use_dstv = use_dstv
-        if exe is not None:
-            self.set_exec(exe)
+        if model is not None:
+            self.set_model(model)
+        self._eva = eva
 
     def fit_trans(self, data):
         if not isinstance(data, dataset.dsxy) \
                 and not all(isinstance(d, dataset.dsxy) for d in data):
             raise TypeError('data must be dsxy or list of dsxy, got: %s' % util.get_type_fullname(data))
         out = []
-        out_names = self._exec._cgraph._graph._out
+        if isinstance(self._model, group.ExecMixin):
+            out_names = self._model._exec._cgraph._graph._out
+        else:
+            raise NotImplementedError()
+        eva_index = slist.indices(out_names, self._eva)
         for i, ds in enumerate(self._iter_split(data)):
             ntrain, ntest = ds.train.nsamples(), ds.valid.nsamples()
             logger.info('cross validation round %d out of %d: %d(train)/%d(test)/%d(total) samples' \
                     % (i+1, self.k, ntrain, ntest, ntrain + ntest))
             if self._use_dstv:
-                ret_train = self._exec.run_train(ds)
+                ret_train = self._model.fit_trans(ds)
                 ret_test = None
             else:
-                ret_train = self._exec.run_train(ds.train)
-                ret_test = self._exec.run_test(ds.valid)
+                ret_train = self._model.fit_trans(ds.train)
+                ret_test = self._model.trans(ds.valid)
 
             res_list = []
-            res_list.append('training result:')
+            res_list.append('evaluation on training:')
             def _format(res):
                 return ['%s:\n%s' % (slist.get(out_names, i), util.indent(str(r), 2)) \
                         for i, r in slist.enumerate(res)]
-            res_list.append(_format(ret_train))
+            #eva_train = self._eva.fit_trans(ret_train)
+            eva_train = self._get_eva_from_output(ret_train, eva_index)
+            res_list.append(_format(eva_train))
             if ret_test is not None:
-                res_list.append('testing result:')
-                res_list.append(_format(ret_test))
+                #eva_test = self._eva.trans(ret_test)
+                eva_test = self._get_eva_from_output(ret_test, eva_index)
+                res_list.append('evaluation on testing:')
+                res_list.append(_format(eva_test))
             outi = []
             outi.append('cross validation %d' % (i+1))
             outi.append(res_list)
             out.append(outi)
         logger.info('cross validation done. train model on the whole dataset for testing')
-        self._exec.run_train(self._get_main_and_labels(data)[0])
+        self._model.fit_trans(self._get_main_and_labels(data)[0])
         return dataset.desc(out)
 
     def trans(self, data):
         main_data, _ = self._get_main_and_labels(data)
-        return self._exec.run_test(main_data)
+        return self._model.fit_trans(main_data)
+
+    def _get_eva_from_output(self, ret, index):
+        return slist.slice(ret, index)
 
     def _get_labels(self, data, label_data):
         if self._label is None:
@@ -196,18 +208,19 @@ class CV(group.ExecMixin, mixin.PartSplitMixin, SkComp):
 
     def _extr_desc(self):
         return 'num folds: %d\nsubmodel:\n%s' % \
-                (self.k, util.indent(str(self._exec), 2))
+                (self.k, util.indent(str(self._model), 2))
 
 
 def _test_split():
     import sklearn.cross_validation as cv
-    c = CV((cv.KFold, [], {}), exe=lambda:0)
+    model = group.ExecComp(lambda:0)
+    c = CV((cv.KFold, [], {}), model=model)
     d = dataset.dsxy(np.arange(10, 15), np.arange(1, 6))
-    c._exec._cgraph = lambda:0
-    c._exec._cgraph._graph = lambda:0
-    c._exec._cgraph._graph._out = 'out'
-    c._exec.run_train = lambda *x: 1001
-    c._exec.run_test = lambda *x: 1002
+    c._model._exec._cgraph = lambda:0
+    c._model._exec._cgraph._graph = lambda:0
+    c._model._exec._cgraph._graph._out = 'out'
+    c._model._exec.run_train = lambda *x: 1001
+    c._model._exec.run_test = lambda *x: 1002
     print c.fit_trans(d)
 
 def main():

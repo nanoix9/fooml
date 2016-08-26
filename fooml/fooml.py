@@ -12,6 +12,7 @@ import report
 import executor
 import comp
 from comp import misc
+import comp.group
 import graph
 import factory
 import util
@@ -60,6 +61,9 @@ class Model(object):
 
     def show(self):
         logger.info('Graph of computing components: %s' % self._graph)
+
+    def to_comp(self):
+        return comp.group.ExecComp(self._exec)
 
     def _report_levelup(self):
         self._reporter.levelup()
@@ -386,10 +390,13 @@ def splitter(name, args=[], opt={}, partition=None, part_key=None):
 def submodel(name, input, output):
     return Model(name, input, output)
 
-def cross_validate(name, model, k=5, type='kfold', label=None, label_key=None, **kwds):
-    if not isinstance(model, Model):
+def cross_validate(name, model, eva=None, k=5, type='kfold', label=None, label_key=None, **kwds):
+    if isinstance(model, Model):
+        model = model.to_comp()
+    elif not isinstance(model, comp.Comp):
         raise TypeError()
-    acomp = factory.create_comp(type, comp_opt=dict(k=k, exe=model._exec, label=label, label_key=label_key, **kwds))
+    comp_opt = dict(k=k, model=model, eva=eva, label=label, label_key=label_key, **kwds)
+    acomp = factory.create_comp(type, comp_opt=comp_opt)
     #if input is None:
     #    input = model._input
     #if label is not None:
@@ -454,7 +461,10 @@ def __test2():
     mdl_cv.add_comp(lr, input=iris_2, output=['y.lr.c', 'y.lr'])
     mdl_cv.add_comp(auc, input='y.lr', output='auc')
     mdl_cv.add_comp(rep , input='y.lr.c', output='report')
-    cv = cross_validate('cv', mdl_cv, k=3, type='stratifiedkfold')
+    #mdl_eva = submodel('eva', input=['y.lr.c', 'y.lr'],  output=['auc', 'report'])
+    #mdl_eva.add_comp(auc, input='y.lr', output='auc')
+    #mdl_eva.add_comp(rep , input='y.lr.c', output='report')
+    cv = cross_validate('cv', mdl_cv.to_comp(), eva=['auc', 'report'], k=3, type='stratifiedkfold')
 
     foo.use_data(data_name, flatten=True)
 

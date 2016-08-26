@@ -7,6 +7,7 @@
 
 import sys
 import comp
+import comp.group
 import graph
 import collections
 import util
@@ -38,9 +39,12 @@ class Executor(object):
         logger.info('Compiling graph "%s" ...' % self._graph.name)
         self._cgraph = graph._CompiledGraph(self._graph)
         for name, acomp in self._graph.iter_comps():
-            if hasattr(acomp, '_exec') and isinstance(acomp._exec, Executor):
-                acomp._exec.set_reporter(self._reporter)
-                acomp._exec.compile()
+            #if hasattr(acomp, '_exec') and isinstance(acomp._exec, Executor):
+            #if isinstance(acomp, comp.group.EmbedMixin) and isinstance(acomp._model, comp.group.ExecMixin) and isinstance(acomp._model._exec, Executor):
+                #acomp._model._exec.set_reporter(self._reporter)
+                #acomp._model._exec.compile()
+            if isinstance(acomp, comp.group.EmbedMixin):
+                acomp.compile(self)
         return self
 
     def compile_graph(self, g):
