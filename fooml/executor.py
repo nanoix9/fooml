@@ -72,6 +72,7 @@ class Executor(object):
             s = stats.summary(data)
             self._report('summary of data "%s":' % names)
             # self._report_leveldown()
+            #print s
             self._report(s)
             # self._report_levelup()
 

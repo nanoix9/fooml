@@ -55,7 +55,7 @@ def summary(data):
                 vdesc,
                 ]
     elif isinstance(data, dataset.desc):
-        desc = '  ' + str(data)
+        desc = util.indent(str(data), ind=2)
     elif _is_small_data(data):
         desc = '  value: ' + str(data)
     else:

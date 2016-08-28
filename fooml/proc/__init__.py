@@ -103,7 +103,7 @@ class Dummy(object):
                         shape=(nrows_out, le.classes_.shape[0]))
             dummy_vars.append(dv)
         #print dummy_vars
-        return self._merge_all(dummy_vars)
+        return self._merge_all(dummy_vars), df_idx.index
 
     def _merge_all(self, dummy_vars):
         return merge(*dummy_vars)

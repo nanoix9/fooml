@@ -369,11 +369,25 @@ def mapxy(func, data):
 
 def mergex(func, data):
     if not isinstance(data, list):
-        return mapx(func, data)
+        #return mapx(func, data)
+        data = [data]
     ds_main = data[0]
     Xs = [d.X for d in data]
-    X_new = func(*Xs)
-    return dsxy(X_new, ds_main.y, ds_main.get_index())
+    ret = func(*Xs)
+    #print ret
+    if isinstance(ret, tuple):
+        if len(ret) == 2:
+            X_new = ret[0]
+            idx = ret[1]
+        else:
+            raise RuntimeError()
+    else:
+        X_new = ret
+        idx = ds_main.get_index()
+    #print X_new
+    #print idx
+    #sys.exit()
+    return dsxy(X_new, ds_main.y, idx)
 
 def __apply_maybe(func, data):
     if data is None:

@@ -3,7 +3,12 @@
 
 import sys
 
+class _IndexSelf():
+    pass
+
 class slist(object):
+
+    SELF = _IndexSelf()
 
     def __init__(self, obj=None):
         self.__obj = obj
@@ -36,8 +41,14 @@ class slist(object):
         return slist.call_obj(obj, list.index, elem)
 
     @staticmethod
-    def indices(obj, elems):
-        return slist.map(lambda e: slist.index(obj, e), elems)
+    def indices(obj, elems=None):
+        if elems is None:
+            if not slist._is_coll(obj):
+                return None
+            else:
+                return range(len(obj))
+        else:
+            return slist.map(lambda e: slist.index(obj, e), elems)
 
     @staticmethod
     def str_index(idx):
@@ -68,8 +79,32 @@ class slist(object):
             return obj[idx]
 
     @staticmethod
-    def slice(obj, idx):
-        return slist.map(lambda i: slist.get(obj, i), idx)
+    def slice(obj, idx, rev=False):
+        if not rev:
+            return slist.map(lambda i: slist.get(obj, i), idx)
+        else:
+            if slist._is_coll(obj):
+                idx_all = slist.indices(obj)
+                rev_idx = slist.filter(lambda i: not slist.contains(idx, i), idx_all)
+                #print rev_idx
+                ret = slist.slice(obj, rev_idx)
+            else:
+                raise RuntimeError()
+            return ret
+
+    @staticmethod
+    def concat(a, b):
+        if slist._is_coll(a):
+            if len(a) == 0:
+                return b
+            ret = list(a)
+            if slist._is_coll(b):
+                ret.extend(b)
+            else:
+                ret.append(b)
+        else:
+            ret = slist.concat([a], b)
+        return ret
 
     #def enumerate_maybe_list(obj, *args):
     @staticmethod
@@ -118,6 +153,16 @@ class slist(object):
             return func(obj)
 
     @staticmethod
+    def filter(func, obj):
+        if slist._is_coll(obj):
+            return filter(func, obj)
+        else:
+            if func(obj):
+                return obj
+            else:
+                return None
+
+    @staticmethod
     def _is_coll(obj, strict=False):
         if strict:
             return isinstance(obj, list)
@@ -164,14 +209,22 @@ def test_slice():
     print slist.slice(['a', 'b'], 1)
     print slist.slice(['a', 'b'], [1])
     print slist.slice(['a', 'b', 'xy'], [1, 2])
-    print slist.slice(['a', 'b', 'xy'], [1, 3])
-    print slist.slice('a', 0)
+    #print slist.slice(['a', 'b', 'xy'], [1, 3])
+    #print slist.slice('a', 0)
+    print slist.slice(['a', 'b', 'xy'], [1, 2], rev=True)
+
+def test_concat():
+    print slist.concat('a', 'bc')
+    print slist.concat(['a'], 'bc')
+    print slist.concat(['a', 'x'], 'bc')
+    print slist.concat(['a', 'x'], ['bc', 'e', 'f'])
 
 def main():
     #test_slist()
     #test_slist2()
     #test_indices()
-    test_slice()
+    #test_slice()
+    test_concat()
     return
 
 if __name__ == '__main__':

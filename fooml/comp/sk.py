@@ -135,18 +135,23 @@ class CV(group.EmbedMixin, mixin.PartSplitMixin, SkComp):
         self._use_dstv = use_dstv
         if model is not None:
             self.set_model(model)
+        self._set_eva(eva)
+
+    def _set_eva(self, eva):
+        if isinstance(self._model, group.ExecMixin):
+            self._model_out_names = self._model._exec._graph._out
+        else:
+            raise NotImplementedError()
         self._eva = eva
+        self._eva_index = slist.indices(self._model_out_names, eva)
+        self._res_index = slist.slice(slist.indices(self._model_out_names), self._eva_index, rev=True)
 
     def fit_trans(self, data):
         if not isinstance(data, dataset.dsxy) \
                 and not all(isinstance(d, dataset.dsxy) for d in data):
             raise TypeError('data must be dsxy or list of dsxy, got: %s' % util.get_type_fullname(data))
-        out = []
-        if isinstance(self._model, group.ExecMixin):
-            out_names = self._model._exec._cgraph._graph._out
-        else:
-            raise NotImplementedError()
-        eva_index = slist.indices(out_names, self._eva)
+        eva_out = []
+        out_names = self._model_out_names
         for i, ds in enumerate(self._iter_split(data)):
             ntrain, ntest = ds.train.nsamples(), ds.valid.nsamples()
             logger.info('cross validation round %d out of %d: %d(train)/%d(test)/%d(total) samples' \
@@ -158,33 +163,41 @@ class CV(group.EmbedMixin, mixin.PartSplitMixin, SkComp):
                 ret_train = self._model.fit_trans(ds.train)
                 ret_test = self._model.trans(ds.valid)
 
-            res_list = []
-            res_list.append('evaluation on training:')
+            eva_list = []
+            eva_list.append('evaluation on training:')
             def _format(res):
-                return ['%s:\n%s' % (slist.get(out_names, i), util.indent(str(r), 2)) \
+                return ['%s:\n%s' % (slist.get(self._eva, i), util.indent(str(r), 2)) \
                         for i, r in slist.enumerate(res)]
             #eva_train = self._eva.fit_trans(ret_train)
-            eva_train = self._get_eva_from_output(ret_train, eva_index)
-            res_list.append(_format(eva_train))
+            eva_train = self._get_eva_from_output(ret_train)
+            eva_list.append(_format(eva_train))
             if ret_test is not None:
                 #eva_test = self._eva.trans(ret_test)
-                eva_test = self._get_eva_from_output(ret_test, eva_index)
-                res_list.append('evaluation on testing:')
-                res_list.append(_format(eva_test))
-            outi = []
-            outi.append('cross validation %d' % (i+1))
-            outi.append(res_list)
-            out.append(outi)
+                eva_test = self._get_eva_from_output(ret_test)
+                eva_list.append('evaluation on testing:')
+                eva_list.append(_format(eva_test))
+            eva_out.append('cross validation %d' % (i+1))
+            eva_out.append(eva_list)
         logger.info('cross validation done. train model on the whole dataset for testing')
-        self._model.fit_trans(self._get_main_and_labels(data)[0])
-        return dataset.desc(out)
+        ret_all = self._model.fit_trans(self._get_main_and_labels(data)[0])
+        eva_all = self._get_eva_from_output(ret_all)
+        eva_out.append('evaluation on whole dataset as training:')
+        eva_out.append(_format(eva_all))
+        res = self._get_res_from_output(ret_all)
+        #print eva_out
+        return slist.concat(res, dataset.desc(eva_out))
 
     def trans(self, data):
         main_data, _ = self._get_main_and_labels(data)
-        return self._model.fit_trans(main_data)
+        ret_all = self._model.trans(main_data)
+        res = self._get_res_from_output(ret_all)
+        return slist.concat(res, None)
 
-    def _get_eva_from_output(self, ret, index):
-        return slist.slice(ret, index)
+    def _get_eva_from_output(self, ret):
+        return slist.slice(ret, self._eva_index)
+
+    def _get_res_from_output(self, ret):
+        return slist.slice(ret, self._res_index)
 
     def _get_labels(self, data, label_data):
         if self._label is None:
@@ -217,8 +230,9 @@ def _test_split():
     c = CV((cv.KFold, [], {}), model=model)
     d = dataset.dsxy(np.arange(10, 15), np.arange(1, 6))
     c._model._exec._cgraph = lambda:0
+    c._model._exec._graph = lambda:0
     c._model._exec._cgraph._graph = lambda:0
-    c._model._exec._cgraph._graph._out = 'out'
+    c._model._exec._graph._out = 'out'
     c._model._exec.run_train = lambda *x: 1001
     c._model._exec.run_test = lambda *x: 1002
     print c.fit_trans(d)

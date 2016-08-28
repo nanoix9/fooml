@@ -24,6 +24,7 @@ def joins(str_list, sep='\n', ind=2):
     if isinstance(str_list, basestring):
         return str_list
 
+    limit = 10000
     ll = []
     for s in str_list:
         #print s
@@ -32,7 +33,11 @@ def joins(str_list, sep='\n', ind=2):
         elif isinstance(s, (list, tuple)):
             ll.append(indent(joins(s, sep, ind), ind))
         else:
-            raise TypeError('element must be basestring, list or tuple')
+            txt = str(s)
+            if (len(txt) > limit):
+                txt = txt[:limit] + '\n' + '......(string too long)'
+            ll.append(txt)
+            #raise TypeError('element must be basestring, list or tuple')
     #print ll
     #sys.exit()
     return sep.join(ll)

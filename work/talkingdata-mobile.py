@@ -62,14 +62,13 @@ def main():
     foo.add_comp(merge_all, ['ds_ga_dummy', 'ds_app_dummy', 'ds_label_dummy'], 'ds_all_dummy')
     foo.add_comp(le, 'ds_all_dummy', 'ds_targ_encoded')
 
-    cv_clf = fooml.submodel('cv_clf', input='ds_targ_encoded', output='y_proba')
+    cv_clf = fooml.submodel('cv_clf', input='ds_targ_encoded', output=['y_proba', 'ds_logloss'])
     cv_clf.add_comp(lr, 'ds_targ_encoded', 'y_proba')
     cv_clf.add_comp(logloss, 'y_proba', 'ds_logloss')
-    cv = fooml.cross_validate('cv', cv_clf, k=2)
 
+    cv = fooml.cross_validate('cv', cv_clf, eva='ds_logloss', k=2)
     #cv = fooml.cross_validate('cv', lr, k=2, evaluate=logloss)
-
-    foo.add_comp(cv, 'ds_targ_encoded', 'y_proba')
+    foo.add_comp(cv, 'ds_targ_encoded', ['y_proba', 'ds_cv'])
 
     get_classes = lambda: foo.get_comp('targ_le')._obj.classes_
     foo.save_output('y_proba', opt=dict(label='device_id', columns=get_classes))
