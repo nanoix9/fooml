@@ -60,12 +60,19 @@ def create_obj(package, name, args=[], opt={}):
 #    return obj
 
 def create_from_str(module_name, clazz_name, args, opt):
-    module = importlib.import_module(module_name)
+    #print module_name
+    try:
+        module = importlib.import_module(module_name)
+    except:
+        logger.error('fail to load module "%s"' % (module_name))
+        raise
+
     try:
         clazz = getattr(module, clazz_name)
     except:
         logger.error('no class "%s" in module "%s"' % (clazz_name, module_name))
         raise
+
     if inspect.isclass(clazz) and comp.conf.instant(clazz_name):
         obj = clazz(*args, **opt)
     elif hasattr(clazz, '__call__'):

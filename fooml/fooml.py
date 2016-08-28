@@ -359,7 +359,7 @@ def feat_merge(name, obj, args=[], opt={}, comp_opt={}):
     else:
         raise TypeError()
 
-def classifier(name, acomp, package='sklearn', proba=None, args=[], opt={}, comp_opt={}):
+def classifier(name, acomp, package=None, proba=None, args=[], opt={}, comp_opt={}):
     comp_opt_tmp = dict(comp_opt)
     comp_opt_tmp['proba'] = proba
     return new_comp(name, acomp, package=package, args=args, opt=opt, comp_opt=comp_opt_tmp)
@@ -474,10 +474,40 @@ def __test2():
     foo.compile()
     foo.run_train()
 
+def __test3():
+    print '========================================='
+    foo = FooML('__test3_for_xgboost')
+    foo.add_reporter(report.MdReporter('report.md'))
+    data_name = 'digits'
+    data_name = 'iris'
+    iris_2 = 'iris.2'
+
+    binclass = trans('binclass', 'binclass')
+    lr = classifier('lr', 'LR', proba='with')
+    xgb = classifier('xgb', 'xgboost', proba='only')
+    auc = evaluator('AUC')
+    rep = evaluator('report')
+
+    mdl_cv = submodel('submdl', input=iris_2, output='auc')
+    #mdl_cv.add_comp(lr, input=iris_2, output='y.lr')
+    mdl_cv.add_comp(xgb, input=iris_2, output='y.lr')
+    mdl_cv.add_comp(auc, input='y.lr', output='auc')
+    #mdl_cv.add_comp(rep , input='y.lr.c', output='report')
+    cv = cross_validate('cv', mdl_cv.to_comp(), eva='auc', k=3, type='stratifiedkfold', use_dstv=True)
+
+    foo.use_data(data_name, flatten=True)
+
+    foo.add_comp(binclass , input=data_name, output=iris_2)
+    foo.add_comp(cv, input=iris_2)
+
+    foo.compile()
+    foo.run_train()
+
 
 def main():
     #__test1()
-    __test2()
+    #__test2()
+    __test3()
     return
 
 if __name__ == '__main__':

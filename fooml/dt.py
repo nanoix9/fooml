@@ -3,11 +3,12 @@
 
 import sys
 
-class _IndexSelf():
-    pass
+class _IndexSelf(): pass
+class _Nothing(): pass
 
 class slist(object):
 
+    NOTHING = _Nothing()
     SELF = _IndexSelf()
 
     def __init__(self, obj=None):
@@ -88,15 +89,18 @@ class slist(object):
                 rev_idx = slist.filter(lambda i: not slist.contains(idx, i), idx_all)
                 #print rev_idx
                 ret = slist.slice(obj, rev_idx)
-            else:
-                raise RuntimeError()
+            elif slist._is_coll(idx):
+                raise RuntimeError('object is single element but index is list')
+            elif idx == obj:
+                return slist.NOTHING
+
             return ret
 
     @staticmethod
     def concat(a, b):
-        if slist._is_coll(a):
-            if len(a) == 0:
-                return b
+        if a is slist.NOTHING:
+            return b
+        elif slist._is_coll(a):
             ret = list(a)
             if slist._is_coll(b):
                 ret.extend(b)
@@ -155,12 +159,15 @@ class slist(object):
     @staticmethod
     def filter(func, obj):
         if slist._is_coll(obj):
-            return filter(func, obj)
+            ret =  filter(func, obj)
+            if len(ret) == 0:
+                ret = slist.NOTHING
+            return ret
         else:
             if func(obj):
                 return obj
             else:
-                return None
+                return slist.NOTHING
 
     @staticmethod
     def _is_coll(obj, strict=False):

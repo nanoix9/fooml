@@ -173,6 +173,41 @@ class PartSplitMixin(SplitMixin):
 #
 #    def trans(self, ds):
 
+class ClfMixin(BaseMixin):
+
+    def set_proba(self, proba):
+        self._cal_proba = proba == 'with' or proba == 'only'
+        self._cal_class = proba != 'only'
+
+    def fit_trans(self, data):
+        if isinstance(data, dataset.dstv):
+            ds_train, ds_valid = data
+        else:
+            ds_train = data
+        self.fit(data)
+        return self.trans(ds_train)
+
+    def trans(self, ds):
+        assert(isinstance(ds, dataset.dsxy))
+        X, y = ds
+        sy = cy = None
+        if self._cal_proba:
+            score = self._predict_proba(X)
+            if score.shape[1] == 2:
+                score = score[:,1]
+            sy = dataset.dssy(score, y, ds.get_index())
+        if self._cal_class:
+            #cls = self._obj.predict(X)
+            cls = self._predict(X)
+            cy = dataset.dscy(cls, y, ds.get_index())
+
+        if cy is not None and sy is not None:
+            return [cy, sy]
+        elif sy is not None:
+            return sy
+        else:
+            return cy
+
 class EvaMixin(BaseMixin):
 
     def fit(self, data):

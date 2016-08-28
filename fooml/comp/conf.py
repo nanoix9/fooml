@@ -4,6 +4,7 @@
 import sys
 from . import sk
 from . import kr
+from . import xgboost_comp
 from . import misc
 
 DEFAULT = '__default__'
@@ -39,7 +40,10 @@ def get_config(package, name):
     if package == DEFAULT:
         full_module = submodule
     else:
-        full_module = package + '.' + submodule
+        if submodule:
+            full_module = package + '.' + submodule
+        else:
+            full_module = package
     return ConfigEntry(comp_class, full_module, clazz, arg, opt)
 
 def get_comp_class(module, name):
@@ -107,9 +111,14 @@ __keras_config = {
         'to_categorical': (misc.TargFuncMapComp, 'utils.np_utils', 'to_categorical'),
         }
 
+__xgboost_config = {
+        'xgboost': (xgboost_comp.XgboostComp, '', 'train'),
+        }
+
 __config = {
         'sklearn': __sklearn_config,
         'keras': __keras_config,
+        'xgboost': __xgboost_config,
         DEFAULT: __default_config,
         }
 

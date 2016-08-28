@@ -56,34 +56,19 @@ class TargInvTrans(mixin.TargMapMixin, SkComp):
     def _trans_func(self, y):
         return self._obj.inverse_transform(y)
 
-class Clf(SkComp):
+class Clf(mixin.ClfMixin, SkComp):
 
     def __init__(self, obj, proba=None):
         super(Clf, self).__init__(obj)
-        self._cal_proba = proba == 'with' or proba == 'only'
-        self._cal_class = proba != 'only'
+        self.set_proba(proba)
 
     def fit(self, data):
         X, y = data
         return self._obj.fit(X, y)
 
-    def trans(self, ds):
-        assert(isinstance(ds, dataset.dsxy))
-        X, y = ds
-        sy = cy = None
-        if self._cal_proba:
-            score = self._predict_proba(X)
-            sy = dataset.dssy(score, y, ds.index)
-        if self._cal_class:
-            cls = self._obj.predict(X)
-            cy = dataset.dscy(cls, y, ds.index)
-
-        if cy is not None and sy is not None:
-            return [cy, sy]
-        elif sy is not None:
-            return sy
-        else:
-            return cy
+    def _predict(self, X):
+        cls = self._obj.predict(X)
+        return cls
 
     def _predict_proba(self, X):
         try:
@@ -145,6 +130,8 @@ class CV(group.EmbedMixin, mixin.PartSplitMixin, SkComp):
         self._eva = eva
         self._eva_index = slist.indices(self._model_out_names, eva)
         self._res_index = slist.slice(slist.indices(self._model_out_names), self._eva_index, rev=True)
+        #print self._eva_index
+        #print self._res_index
 
     def fit_trans(self, data):
         if not isinstance(data, dataset.dsxy) \
