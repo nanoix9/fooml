@@ -54,7 +54,7 @@ def create_obj(package, name, args=[], opt={}):
     if package == 'fooml.comp.special':
         obj = getattr(comp.special, name)(*args, **opt)
     elif name == 'None':
-        obj = _fake_obj
+        obj = _fake_obj, args, opt
     else:
         obj = create_from_str(package, name, args, opt)
     return obj

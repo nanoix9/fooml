@@ -15,38 +15,39 @@ except ImportError:
 
 class XgboostComp(mixin.ClfMixin, comp.Comp):
 
-    def __init__(self, obj, proba=None, params={}, nrounds=1000):
-        super(XgboostComp, self).__init__(obj)
+    def __init__(self, obj, proba=None):
+        super(XgboostComp, self).__init__(obj[0])
         self.set_proba(proba)
-        self._params = params
-        self._nrounds = nrounds
+        #self._args = obj[1]
+        self._opt = obj[2]
+        #self._params = params
         self._best_rounds = []
 
     def fit(self, data):
+        kwds = dict(self._opt)
         if isinstance(data, dataset.dsxy):
             Xt, yt = data
             Xv, yv = None, None
             logger.info('best number of rounds: %s' % self._best_rounds)
-            nrounds = self._best_rounds[-1] + 1
+            kwds['num_boost_round'] = self._best_rounds[-1] + 1
         elif isinstance(data, dataset.dstv):
             Xt, yt = data.train
             Xv, yv = data.valid
-            nrounds = self._nrounds
         else:
             raise TypeError()
         nb_class = len(np.unique(yt))
         params = self.__get_default_params(nb_class)
-        params.update(self._params)
+        params.update(kwds.pop('params', {}))
         params['num_class'] = len(np.unique(yt))
 
         d_train = xgb.DMatrix(Xt, label=yt)
         watchlist = [(d_train, 'train')]
-        kwds = {}
         if Xv is not None:
             d_valid = xgb.DMatrix(Xv, label=yv)
             watchlist.append((d_valid, 'valid'))
-            kwds['early_stopping_rounds'] = 25
-        self._obj = xgb.train(params, d_train, nrounds, watchlist, **kwds)
+            kwds.setdefault('early_stopping_rounds', 25)
+        logger.info('training xbgoost with params=%s, kwds=%s' % (str(params), str(kwds)))
+        self._obj = xgb.train(params, d_train, evals=watchlist, **kwds)
         if Xv is not None:
             self._best_rounds.append(self._obj.best_iteration)
         return self
@@ -56,7 +57,8 @@ class XgboostComp(mixin.ClfMixin, comp.Comp):
         if hasattr(self._obj, 'best_ntree_limit'):
             ntree_limit = self._obj.best_ntree_limit
             logger.info('xgbooster has best_ntree_limit=%d, use it for prediction' % ntree_limit)
-        pred = self._obj.predict(xgb.DMatrix(X), ntree_limit=ntree_limit)
+        #pred = self._obj.predict(xgb.DMatrix(X), ntree_limit=ntree_limit)
+        pred = self._obj.predict(xgb.DMatrix(X))
         #print pred
         return pred
 
