@@ -10,6 +10,12 @@ import inspect
 import util
 from log import logger
 
+class FakeObj(object):
+
+    def __str__(self):
+        return 'FakeObj(None)'
+
+_fake_obj = FakeObj()
 
 def create_inv_trans(acomp):
     assert(acomp is not None)
@@ -47,6 +53,8 @@ def create_obj(package, name, args=[], opt={}):
             (name, package, str(args), str(opt)))
     if package == 'fooml.comp.special':
         obj = getattr(comp.special, name)(*args, **opt)
+    elif name == 'None':
+        obj = _fake_obj
     else:
         obj = create_from_str(package, name, args, opt)
     return obj

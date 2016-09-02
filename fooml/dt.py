@@ -4,7 +4,10 @@
 import sys
 
 class _IndexSelf(): pass
-class _Nothing(): pass
+class _Nothing():
+
+    def __str__(self):
+        return 'slist:Nothing'
 
 class slist(object):
 
@@ -74,6 +77,8 @@ class slist(object):
     def get(obj, idx):
         if idx is None:
             return obj
+        elif idx is slist.NOTHING:
+            return slist.NOTHING
         else:
             if not slist._is_coll(obj):
                 raise ValueError('index is not None but object is not a list or tuple')

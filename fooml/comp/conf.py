@@ -112,7 +112,7 @@ __keras_config = {
         }
 
 __xgboost_config = {
-        'xgboost': (xgboost_comp.XgboostComp, '', 'train'),
+        'xgboost': (xgboost_comp.XgboostComp, '', 'None'),
         }
 
 __config = {

@@ -25,6 +25,8 @@ def _merge_label(device_apps, app_labels):
     return device_labels
 
 def main():
+    use_dstv = False
+
     foo = fooml.FooML('talkingdata-mobile')
 
     foo.set_data_home('/vola1/scndof/data/talkingdata-mobile')
@@ -47,6 +49,8 @@ def main():
     merge_all = fooml.new_comp('merge_all', 'merge')
     le = fooml.trans('targ_le', 'targetencoder')
     lr = fooml.classifier('clf', 'LR', proba='only', opt=dict(C=0.02, multi_class='multinomial',solver='lbfgs'))
+    xgbr = fooml.classifier('xgbr', 'xgboost', proba='only', comp_opt=dict(params=dict()))
+    use_dstv = True
     logloss = fooml.evaluator('logloss')
 
     #foo.add_comp(drop_dup, 'phone', 'phone_uniq')
@@ -63,10 +67,11 @@ def main():
     foo.add_comp(le, 'ds_all_dummy', 'ds_targ_encoded')
 
     cv_clf = fooml.submodel('cv_clf', input='ds_targ_encoded', output=['y_proba', 'ds_logloss'])
-    cv_clf.add_comp(lr, 'ds_targ_encoded', 'y_proba')
+    #cv_clf.add_comp(lr, 'ds_targ_encoded', 'y_proba')
+    cv_clf.add_comp(xgbr, 'ds_targ_encoded', 'y_proba')
     cv_clf.add_comp(logloss, 'y_proba', 'ds_logloss')
 
-    cv = fooml.cross_validate('cv', cv_clf, eva='ds_logloss', k=2)
+    cv = fooml.cross_validate('cv', cv_clf, eva='ds_logloss', k=5, use_dstv=use_dstv)
     #cv = fooml.cross_validate('cv', lr, k=2, evaluate=logloss)
     foo.add_comp(cv, 'ds_targ_encoded', ['y_proba', 'ds_cv'])
 

@@ -193,7 +193,7 @@ class ClfMixin(BaseMixin):
         sy = cy = None
         if self._cal_proba:
             score = self._predict_proba(X)
-            if score.shape[1] == 2:
+            if len(score.shape) > 1 and score.shape[1] == 2:
                 score = score[:,1]
             sy = dataset.dssy(score, y, ds.get_index())
         if self._cal_class:

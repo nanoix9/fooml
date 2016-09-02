@@ -4,15 +4,31 @@
 import sys
 import numpy as np
 import pandas as pd
-import dataset
-import util
 import scipy.sparse as sp
 
+import dataset
+import util
+import settings
+from log import logger
+
+__summary_cache = {}
+
+settings.CACHE_DATA_SUMMARY_RESULT = False
+
 def summary(data):
+    #data_id = id(data)
+    #if settings.CACHE_DATA_SUMMARY_RESULT:
+    #    if data_id in __summary_cache:
+    #        logger.debug('get data summary for 0x%x from cache' % data_id)
+    #        return __summary_cache[data_id]
+
     if isinstance(data, dataset.dsxy):
         xdesc = summary(data.X)
         ydesc = summary(data.y)
-        idesc = summary(data.get_index())
+        index = data.get_index()
+        idesc = summary(index)
+        if index is not None:
+            idesc.extend(_check_unique(index))
         desc = ['type: %s' % util.get_type_fullname(data),
                 'indices:',
                 idesc,
@@ -57,10 +73,26 @@ def summary(data):
     elif isinstance(data, dataset.desc):
         desc = util.indent(str(data), ind=2)
     elif _is_small_data(data):
-        desc = '  value: ' + str(data)
+        desc = util.indent('value: ' + str(data), ind=2)
     else:
         desc = _summary(data)
+
+    #if settings.CACHE_DATA_SUMMARY_RESULT:
+    #    __summary_cache[data_id] = desc
+
     return desc
+
+def _check_unique(arr):
+    arr_uniq, counts = np.unique(arr, return_counts=True)
+    if not np.all(counts == 1):
+        ret = ['warning: NOT UNIQUE']
+        non_uniq_idx = counts > 1
+        df = pd.DataFrame(counts[non_uniq_idx], index=arr_uniq[non_uniq_idx], columns=['count'])
+        df.index.name = 'value'
+        ret.append(['most duplicated values and counts:', str(df.sort().head(5).tranpose())])
+    else:
+        ret = ['index is unique']
+    return ret
 
 def desc_cate(data):
     if isinstance(data, pd.DataFrame):

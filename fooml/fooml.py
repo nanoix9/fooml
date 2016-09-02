@@ -482,9 +482,17 @@ def __test3():
     data_name = 'iris'
     iris_2 = 'iris.2'
 
+    xgb_params = {'booster': 'gbtree',
+            'objective' : 'multi:softprob',
+            'eval_metric' : 'mlogloss',
+            'eta' : 0.005,
+            'lambda' : 3,
+            'alpha' : 2,
+            }
+
     binclass = trans('binclass', 'binclass')
     lr = classifier('lr', 'LR', proba='with')
-    xgb = classifier('xgb', 'xgboost', proba='only')
+    xgb = classifier('xgb', 'xgboost', proba='only', comp_opt=dict(params=xgb_params))
     auc = evaluator('AUC')
     rep = evaluator('report')
 
@@ -506,8 +514,8 @@ def __test3():
 
 def main():
     #__test1()
-    #__test2()
-    __test3()
+    __test2()
+    #__test3()
     return
 
 if __name__ == '__main__':

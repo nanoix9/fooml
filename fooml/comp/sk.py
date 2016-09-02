@@ -145,7 +145,8 @@ class CV(group.EmbedMixin, mixin.PartSplitMixin, SkComp):
                     % (i+1, self.k, ntrain, ntest, ntrain + ntest))
             if self._use_dstv:
                 ret_train = self._model.fit_trans(ds)
-                ret_test = None
+                #ret_test = None
+                ret_test = self._model.trans(ds.valid)
             else:
                 ret_train = self._model.fit_trans(ds.train)
                 ret_test = self._model.trans(ds.valid)
@@ -184,6 +185,9 @@ class CV(group.EmbedMixin, mixin.PartSplitMixin, SkComp):
         return slist.slice(ret, self._eva_index)
 
     def _get_res_from_output(self, ret):
+        #print ret
+        #print self._res_index
+        #print self._eva
         return slist.slice(ret, self._res_index)
 
     def _get_labels(self, data, label_data):
