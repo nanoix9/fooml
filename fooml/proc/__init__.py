@@ -120,7 +120,10 @@ class Dummy(object):
             nrows = np.max(idx_array) + 1
 
         df_idx_tmp = pd.DataFrame(dict(__ROWINDEX__=idx_array), index=key_idx)
-        dftmp = df.merge(df_idx_tmp, how='left', left_index=True, right_index=True)
+        if isinstance(self._key, basestring) and self._key in df.columns.values:
+            dftmp = df[[self._key]].merge(df_idx_tmp, how='left', left_on=self._key, right_index=True)
+        else:
+            dftmp = df[[]].merge(df_idx_tmp, how='left', left_index=True, right_index=True)
         #print dftmp
         row_idx = dftmp['__ROWINDEX__']
         #print row_idx

@@ -176,7 +176,12 @@ def _summary(data):
     elif isinstance(data, sp.csr_matrix):
         nz = data.count_nonzero()
         cnt = data.shape[0] * data.shape[1]
-        ret.append('sparsity: %d(nonzero)/%d(total) = %f' % (nz, cnt, float(nz)/cnt))
+        ret.append('sparsity(element): %d(nonzero)/%d(total) = %f' % (nz, cnt, float(nz)/cnt))
+        nz_row = np.sum(np.diff(data.indptr) != 0)
+        nz_col = len(np.unique(data.indices))
+        cnt_row, cnt_col = data.shape
+        ret.append('sparsity(row):     %d(nonzero)/%d(total) = %f' % (nz_row, cnt_row, float(nz_row)/cnt_row))
+        ret.append('sparsity(col):     %d(nonzero)/%d(total) = %f' % (nz_col, cnt_col, float(nz_col)/cnt_col))
         return ret
     else:
         raise ValueError('unknown data type: %s' % type(data))
@@ -184,16 +189,16 @@ def _summary(data):
 
     dh = df.head(5)
     ret.append('head n:')
-    ret.append(str(dh))
+    ret.append([str(dh)])
 
     if dtype is not None and np.issubdtype(dtype, np.number):
         dn = df.describe().transpose()
         ret.append('take as numeric type:')
-        ret.append(str(dn))
+        ret.append([str(dn)])
 
     dc = desc_cate(df)
     ret.append('take as category type:')
-    ret.append(str(dc))
+    ret.append([str(dc)])
     return ret
 
 def _is_small_data(data):
