@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
+from StringIO import StringIO
 import numpy as np
 import pandas as pd
 import scipy.sparse as sp
@@ -143,8 +144,15 @@ def _summary(data):
     if data is None:
         return '  data is NONE'
 
-    ret = ['type: %s' % util.get_type_fullname(data),
-           'size: %s' % str(data.shape)]
+    ret = []
+    if isinstance(data, pd.DataFrame):
+        sio = StringIO()
+        data.info(buf=sio, verbose=True)
+        ret.append('type info: %s' % util.indent(sio.getvalue().strip(), ind=2))
+    else:
+        ret.append('type: %s' % util.get_type_fullname(data))
+
+    ret.append('size: %s' % str(data.shape))
 
     dtype = None
     if isinstance(data, (pd.Series, pd.DataFrame)):
