@@ -3,8 +3,9 @@
 
 import sys
 sys.path.append("./")
-
+import numpy as np
 import fooml
+from fooml.log import logger
 
 
 def _merge(ga, phone):
@@ -23,6 +24,23 @@ def _merge_label(device_apps, app_labels):
             .merge(app_labels[['app_id','label_id']])
             .groupby(['device_id','label_id'])['app_id'].agg(['size']))
     return device_labels
+
+def create_nn(X, y, *_, **__):
+    logger.debug('create nnet with input dim %d' % X.shape[1])
+    from keras.models import Sequential
+    from keras.layers.core import Dense, Dropout, Activation, Flatten
+    #from keras.layers.convolutional import Convolution2D, MaxPooling2D, ZeroPadding2D
+    # create model
+    model = Sequential()
+    #model.add(Dense(10, input_dim=Xtrain.shape[1], init='normal', activation='relu'))
+    #model.add(Dropout(0.2))
+    model.add(Dense(50, input_dim=X.shape[1], init='normal', activation='tanh'))
+    model.add(Dropout(0.5))
+    model.add(Dense(12, init='normal', activation='sigmoid'))
+    # Compile model
+    model.compile(loss='categorical_crossentropy', optimizer='adadelta', metrics=['accuracy'])  #logloss
+    return model
+
 
 def main():
     use_dstv = False
@@ -54,8 +72,20 @@ def main():
     merge_all = fooml.new_comp('merge_all', 'merge')
 
     le = fooml.trans('targ_le', 'targetencoder')
+    cate = fooml.trans('cate', 'to_categorical', args=[np.unique(foo.get_train_data('ga').y).shape[0]])
+
     lr = fooml.classifier('clf', 'LR', proba='only', opt=dict(C=0.02, multi_class='multinomial',solver='lbfgs'))
     xgbr = fooml.classifier('xgbr', 'xgboost', proba='only', opt=dict(params=dict()))
+
+    from keras.callbacks import EarlyStopping, ModelCheckpoint
+    import  fooml.comp.kr as kr
+    callbacks = [
+                EarlyStopping(monitor='val_loss', patience=2, verbose=0),
+                ]
+    train_opt=dict(batch_size=16, nb_epoch=1, \
+            verbose=1, shuffle=True, callbacks=callbacks)
+    #nncls = fooml.nnet('nncls', model, train_opt=train_opt)
+    nncls = fooml.nnet('nncls', kr.Clf(fooml.LazyInit(create_nn, 'fit'), train_opt=train_opt))
     use_dstv = True
     logloss = fooml.evaluator('logloss')
 
@@ -73,15 +103,18 @@ def main():
     foo.add_comp(dummy_label, ['ds_device_label', 'ds_ga_merge'], 'ds_label_dummy')
     foo.add_comp(merge_all, ['ds_ga_dummy', 'ds_app_dummy', 'ds_label_dummy'], 'ds_all_dummy')
     foo.add_comp(le, 'ds_all_dummy', 'ds_targ_encoded')
+    foo.add_comp(cate, 'ds_targ_encoded', 'ds_targ_cate')
 
     cv_clf = fooml.submodel('cv_clf', input='ds_targ_encoded', output=['y_proba', 'ds_logloss'])
     #cv_clf.add_comp(lr, 'ds_targ_encoded', 'y_proba')
-    cv_clf.add_comp(xgbr, 'ds_targ_encoded', 'y_proba')
+    #cv_clf.add_comp(xgbr, 'ds_targ_encoded', 'y_proba')
+    cv_clf.add_comp(nncls, 'ds_targ_encoded', 'y_proba')
     cv_clf.add_comp(logloss, 'y_proba', 'ds_logloss')
 
     cv = fooml.cross_validate('cv', cv_clf, eva='ds_logloss', k=5, use_dstv=use_dstv)
     #cv = fooml.cross_validate('cv', lr, k=2, evaluate=logloss)
-    foo.add_comp(cv, 'ds_targ_encoded', ['y_proba', 'ds_cv'])
+    #foo.add_comp(cv, 'ds_targ_encoded', ['y_proba', 'ds_cv'])
+    foo.add_comp(cv, 'ds_targ_cate', ['y_proba', 'ds_cv'])
 
     get_classes = lambda: foo.get_comp('targ_le')._obj.classes_
     foo.save_output('y_proba', opt=dict(label='device_id', columns=get_classes))
