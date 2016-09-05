@@ -19,6 +19,9 @@ class Comp(object):
     def get_name(self):
         return self._name
 
+    def get_obj(self):
+        return self._obj
+
     def __str__(self):
         return repr(self)
 

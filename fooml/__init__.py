@@ -1,2 +1,2 @@
 from fooml import *
-from proc import LazyInit
+from proc import LazyObj

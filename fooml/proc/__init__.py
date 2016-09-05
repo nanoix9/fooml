@@ -131,15 +131,17 @@ class Dummy(object):
         return row_idx, nrows
 
 
-class LazyInit(object):
+class LazyObj(object):
 
-    def __init__(self, init, in_func):
+    def __init__(self, init):
         self._init = init
         self._obj = None
         self._in_func = in_func
         setattr(self, in_func, self.init_and_call)
 
     def init_and_call(self, *args, **kwds):
+        print args
+        print kwds
         if self._obj is None:
             self._obj = self._init(*args, **kwds)
         return getattr(self._obj, self._in_func)(*args, **kwds)

@@ -25,8 +25,9 @@ def _merge_label(device_apps, app_labels):
             .groupby(['device_id','label_id'])['app_id'].agg(['size']))
     return device_labels
 
-def create_nn(X, y, *_, **__):
-    logger.debug('create nnet with input dim %d' % X.shape[1])
+#def create_nn(X, y, *_, **__):
+def create_nn(nb_feat):
+    #logger.debug('create nnet with input dim %d' % X.shape[1])
     from keras.models import Sequential
     from keras.layers.core import Dense, Dropout, Activation, Flatten
     #from keras.layers.convolutional import Convolution2D, MaxPooling2D, ZeroPadding2D
@@ -34,7 +35,8 @@ def create_nn(X, y, *_, **__):
     model = Sequential()
     #model.add(Dense(10, input_dim=Xtrain.shape[1], init='normal', activation='relu'))
     #model.add(Dropout(0.2))
-    model.add(Dense(50, input_dim=X.shape[1], init='normal', activation='tanh'))
+    #model.add(Dense(50, input_dim=X.shape[1], init='normal', activation='tanh'))
+    model.add(Dense(50, input_dim=nb_feat, init='normal', activation='tanh'))
     model.add(Dropout(0.5))
     model.add(Dense(12, init='normal', activation='sigmoid'))
     # Compile model
@@ -85,7 +87,8 @@ def main():
     train_opt=dict(batch_size=16, nb_epoch=1, \
             verbose=1, shuffle=True, callbacks=callbacks)
     #nncls = fooml.nnet('nncls', model, train_opt=train_opt)
-    nncls = fooml.nnet('nncls', kr.Clf(fooml.LazyInit(create_nn, 'fit'), train_opt=train_opt))
+    #nncls = fooml.nnet('nncls', kr.Clf(fooml.LazyObj(create_nn, 'fit_generator'), train_opt=train_opt))
+    nncls = fooml.nnet('nncls', create_nn(15853), train_opt=train_opt)
     use_dstv = True
     logloss = fooml.evaluator('logloss')
 
