@@ -48,6 +48,45 @@ class Comp(object):
         self.fit(data)
         return self.trans(data)
 
+    def add_callback(self, before=None, after=None, \
+            before_train=None, after_train=None, \
+            before_test=None, after_test=None):
+        self._add_callback('before_train', before_train)
+        self._add_callback('before_train', before)
+        self._add_callback('after_train', after_train)
+        self._add_callback('after_train', after)
+        self._add_callback('before_test', before_test)
+        self._add_callback('before_test', before)
+        self._add_callback('after_test', after_test)
+        self._add_callback('after_test', after)
+        return self
+
+    def _add_callback(self, name, callbacks):
+        if not callbacks:
+            return self
+        var_name = '_callback_' + name
+        if not hasattr(self, var_name):
+            setattr(self, var_name, [])
+        getattr(self, var_name).append(callbacks)
+        return self
+
+    def before_train(self, data):
+        return self._callback_if_exist('_callback_before_train', data)
+
+    def after_train(self, out):
+        return self._callback_if_exist('_callback_after_train', out)
+
+    def before_test(self, data):
+        return self._callback_if_exist('_callback_before_test', data)
+
+    def after_test(self, out):
+        return self._callback_if_exist('_callback_after_test', out)
+
+    def _callback_if_exist(self, callback_name, *args, **kwds):
+        if hasattr(self, callback_name):
+            for cb in getattr(self, callback_name):
+                cb(*args, **kwds)
+
     def _extr_desc(self):
         return ''
 
@@ -58,35 +97,6 @@ class Nop(Comp):
 
     def __repr__(self):
         return util.get_type_fullname(self)
-
-class LambdaComp(Comp):
-
-    def __init__(self, obj, fit, trans, fit_trans=None):
-        super(LambdaComp, self).__init__(obj)
-        self._fit = fit
-        self._trans = trans
-        if fit_trans is not None:
-            self._fit_trans = fit_trans
-        else:
-            self._fit_trans = self._default_fit_trans
-
-    def fit(self, data):
-        if self._fit is not None:
-            return self._fit(self._obj, data)
-        return None
-
-    def trans(self, data):
-        logger.debug('trans of comp lambda: %s %s' % (self._obj, data))
-        #print self._trans(self._obj, data)
-        return self._trans(self._obj, data)
-
-    def fit_trans(self, data):
-        print '>>>> fit_trans of lambda comp:', self._obj, data
-        return self._fit_trans(self._obj, data)
-
-    def _default_fit_trans(self, _, data):
-        self.fit(data)
-        return self.trans(data)
 
 class StatelessComp(Comp):
 

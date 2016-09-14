@@ -430,7 +430,13 @@ def __test1():
     auc = evaluator('AUC')
 
     #foo.add_trans('decide', 'decide', input='y.lr', output='y.lr.c')
-    rep = evaluator('report')
+    rep = evaluator('report') \
+            .add_callback(before=lambda data: logger.info('before'), \
+                    after=lambda out: logger.info('after'), \
+                    before_train=lambda data: logger.error('haha'), \
+                    after_train=lambda out: logger.fatal(out)) \
+            .add_callback(before_train=lambda data: logger.error('wowo'), \
+                    after_train=lambda out: logger.fatal(out.__class__))
     #foo.save_output(['y.lr', 'y.lr.c'])
     #foo.save_output('y.lr')
 
@@ -513,9 +519,9 @@ def __test3():
 
 
 def main():
-    #__test1()
+    __test1()
     #__test2()
-    __test3()
+    #__test3()
     return
 
 if __name__ == '__main__':

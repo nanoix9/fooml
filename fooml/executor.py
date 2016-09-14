@@ -111,13 +111,17 @@ class Executor(object):
 
     def _train_one(self, basic_comp, data):
         #self._desc_data(data, self._graph.)
+        basic_comp.before_train(data)
         out = basic_comp.fit_trans(data)
+        basic_comp.after_train(out)
         #self._desc_data(out)
         return out
 
     def _test_one(self, basic_comp, data):
         #self._desc_data(data)
+        basic_comp.before_test(data)
         out = basic_comp.trans(data)
+        basic_comp.after_test(data)
         #self._desc_data(out)
         return out
 
