@@ -44,7 +44,7 @@ class Clf(KerasComp):
         batch_size = opt.pop('batch_size', 64)
         shuffle = opt.pop('shuffle', True)
         opt['samples_per_epoch'] = X_train.shape[0]
-        logger.info('fit_generator with sparse matrix: batch_size %d, shuffle %s' \
+        logger.info('fit_generator with sparse matrix: batch_size %d, shuffle %s ' \
                 'and options: %s' % (batch_size, shuffle, str(opt)))
         if X_valid is not None:
             opt['validation_data'] = (X_valid.toarray(), y_valid)
