@@ -5,6 +5,8 @@ import sys
 import inspect
 from fooml.log import logger
 from fooml import util
+from fooml import env
+from fooml.proc import LazyObj
 
 
 class Comp(object):
@@ -20,6 +22,9 @@ class Comp(object):
         return self._name
 
     def get_obj(self):
+        if isinstance(self._obj, LazyObj):
+            logger.info('create real object from LazyObj')
+            self._obj = self._obj.init()
         return self._obj
 
     def __str__(self):
@@ -48,17 +53,21 @@ class Comp(object):
         self.fit(data)
         return self.trans(data)
 
-    def add_callback(self, before=None, after=None, \
+    def add_callback(self, every=None, before=None, after=None, \
             before_train=None, after_train=None, \
             before_test=None, after_test=None):
         self._add_callback('before_train', before_train)
         self._add_callback('before_train', before)
+        self._add_callback('before_train', every)
         self._add_callback('after_train', after_train)
         self._add_callback('after_train', after)
+        self._add_callback('after_train', every)
         self._add_callback('before_test', before_test)
         self._add_callback('before_test', before)
+        self._add_callback('before_test', every)
         self._add_callback('after_test', after_test)
         self._add_callback('after_test', after)
+        self._add_callback('after_test', every)
         return self
 
     def _add_callback(self, name, callbacks):
@@ -73,19 +82,27 @@ class Comp(object):
     def before_train(self, data):
         return self._callback_if_exist('_callback_before_train', data)
 
-    def after_train(self, out):
-        return self._callback_if_exist('_callback_after_train', out)
+    def after_train(self, data, out):
+        return self._callback_if_exist('_callback_after_train', data, out)
 
     def before_test(self, data):
         return self._callback_if_exist('_callback_before_test', data)
 
-    def after_test(self, out):
-        return self._callback_if_exist('_callback_after_test', out)
+    def after_test(self, data, out):
+        return self._callback_if_exist('_callback_after_test', data, out)
 
     def _callback_if_exist(self, callback_name, *args, **kwds):
         if hasattr(self, callback_name):
             for cb in getattr(self, callback_name):
+                logger.info('invoke callback[%s]: "%s"' % (callback_name, cb.__name__))
                 cb(*args, **kwds)
+
+    def set_env(self, key, val, when='every'):
+        cb = lambda *args: env.set_env(key, val, *args)
+        cb.__name__ = 'set_env'
+        kwds = {when: cb}
+        self.add_callback(**kwds)
+        return self
 
     def _extr_desc(self):
         return ''

@@ -6,6 +6,7 @@
 #from __future__ import print_function
 
 import sys
+import env
 import comp
 import comp.group
 import graph
@@ -110,19 +111,11 @@ class Executor(object):
         return out
 
     def _train_one(self, basic_comp, data):
-        #self._desc_data(data, self._graph.)
-        basic_comp.before_train(data)
         out = basic_comp.fit_trans(data)
-        basic_comp.after_train(out)
-        #self._desc_data(out)
         return out
 
     def _test_one(self, basic_comp, data):
-        #self._desc_data(data)
-        basic_comp.before_test(data)
         out = basic_comp.trans(data)
-        basic_comp.after_test(data)
-        #self._desc_data(out)
         return out
 
     def _run_iter(self, acomp, data, func):
@@ -141,7 +134,13 @@ class Executor(object):
             #print acomp
             self._report('run "%s" on component:\n%s' \
                     % (fname, util.indent(repr(acomp))))
+            # set context for utility of environment
+            env._curr_self = acomp
+            env._curr_input = data
+            acomp.before_train(data)
             out = func(acomp, data)
+            env._curr_output = out
+            acomp.after_train(data, out)
         else:
             raise TypeError('unknown component type: "%s"' % acomp.__class__)
         return out

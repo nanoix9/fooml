@@ -5,6 +5,7 @@ import sys
 sys.path.append("./")
 import numpy as np
 import fooml
+from fooml import env
 from fooml.log import logger
 
 
@@ -26,7 +27,7 @@ def _merge_label(device_apps, app_labels):
     return device_labels
 
 #def create_nn(X, y, *_, **__):
-def create_nn(nb_feat):
+def create_nn():
     #logger.debug('create nnet with input dim %d' % X.shape[1])
     from keras.models import Sequential
     from keras.layers.core import Dense, Dropout, Activation, Flatten
@@ -36,6 +37,7 @@ def create_nn(nb_feat):
     #model.add(Dense(10, input_dim=Xtrain.shape[1], init='normal', activation='relu'))
     #model.add(Dropout(0.2))
     #model.add(Dense(50, input_dim=X.shape[1], init='normal', activation='tanh'))
+    nb_feat = env.get_env('nb_feat')
     model.add(Dense(50, input_dim=nb_feat, init='normal', activation='tanh'))
     model.add(Dropout(0.5))
     model.add(Dense(20, init='normal', activation='tanh'))
@@ -73,7 +75,7 @@ def main():
     merge_label = fooml.feat_merge('merge_label', _merge_label)
     dummy_label = fooml.new_comp('dummy_label', 'dummy', opt=dict(key='device_id', cols=['label_id'], sparse='csr'))
 
-    merge_all = fooml.new_comp('merge_all', 'merge')
+    merge_all = fooml.new_comp('merge_all', 'merge').set_env('nb_feat', env.out_dim, when='after')
 
     le = fooml.trans('targ_le', 'targetencoder')
     cate = fooml.trans('cate', 'to_categorical', args=[np.unique(foo.get_train_data('ga').y).shape[0]])
@@ -89,8 +91,8 @@ def main():
     train_opt=dict(batch_size=16, nb_epoch=5, \
             verbose=1, shuffle=True, callbacks=callbacks)
     #nncls = fooml.nnet('nncls', model, train_opt=train_opt)
-    #nncls = fooml.nnet('nncls', kr.Clf(fooml.LazyObj(create_nn, 'fit_generator'), train_opt=train_opt))
-    nncls = fooml.nnet('nncls', create_nn(15853), train_opt=train_opt)
+    nncls = fooml.new_comp('nncls', kr.Clf(fooml.LazyObj(create_nn), train_opt=train_opt))
+    #nncls = fooml.nnet('nncls', create_nn(15853), train_opt=train_opt)
     use_dstv = True
     logloss = fooml.evaluator('logloss')
 

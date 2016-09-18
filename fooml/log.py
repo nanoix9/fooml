@@ -19,6 +19,7 @@ logger.setLevel(logging.DEBUG)
 __ch = logging.StreamHandler()
 __ch.setLevel(logging.DEBUG)
 # create formatter and add it to the handlers
+#__formatter = logging.Formatter("%(asctime)s %(process)d [%(filename)s:%(funcName)s] %(levelname)s - %(message)s",
 __formatter = logging.Formatter("%(asctime)s [%(filename)s:%(funcName)s] %(levelname)s - %(message)s",
         '%Y-%m-%d %H:%M:%S')
 __ch.setFormatter(__formatter)
