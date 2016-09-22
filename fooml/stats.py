@@ -154,15 +154,19 @@ def _summary(data):
 
     ret.append('size: %s' % str(data.shape))
 
-    dtype = None
+    as_numeric = False
     if isinstance(data, (pd.Series, pd.DataFrame)):
         df = data
+        if isinstance(data, pd.Series) or len(data.columns) > 0:
+            as_numeric = True
     elif isinstance(data, (pd.MultiIndex)):
         df = pd.DataFrame(data)
     elif isinstance(data, (pd.Index)):
         df = pd.Series(data)
     elif isinstance(data, np.ndarray):
         dtype = data.dtype
+        if dtype is not None and np.issubdtype(dtype, np.number):
+            as_numeric = True
         if len(data.shape) == 1:
             df = pd.Series(data)
         elif len(data.shape) <= 2:
@@ -191,7 +195,7 @@ def _summary(data):
     ret.append('head n:')
     ret.append([str(dh)])
 
-    if dtype is not None and np.issubdtype(dtype, np.number):
+    if as_numeric:
         dn = df.describe().transpose()
         ret.append('take as numeric type:')
         ret.append([str(dn)])

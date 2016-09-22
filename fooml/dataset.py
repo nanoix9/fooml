@@ -137,18 +137,22 @@ class BasicDataset(Dataset):
 def load_data(name, **kwds):
     return load_toy(name, **kwds)
 
-def load_csv(path, index_col=None, target=None, feature=None, **kwds):
+def load_csv(path, target=None, feature=None, type='pandas', opt={}):
+    #print opt
     y = None
     index = None
-    df = pd.read_csv(path, index_col=index_col, encoding='utf8', **kwds)
-    #if index_col:
-    #    index = np.array(df.index)
-    #else:
-    #    index = None
-    if target is not None:
-        y = df[target]
-    #print df
-    #print y
+    if type == 'pandas':
+        logger.debug('load csv by pandas in utf8 with opt: %s' % opt)
+        df = pd.read_csv(path, encoding='utf8', **opt)
+        #if index_col:
+        #    index = np.array(df.index)
+        #else:
+        #    index = None
+        if target is not None:
+            logger.debug('pop column "%s" as target' % target)
+            y = df.pop(target)
+        #print df
+        #print y
     return dsxy(df, y, index=index)
 
 def load_image(image_path, target_path, sample_id, target=None):

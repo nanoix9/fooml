@@ -54,12 +54,12 @@ def main():
     foo = fooml.FooML('talkingdata-mobile')
 
     foo.set_data_home('/vola1/scndof/data/talkingdata-mobile')
-    foo.enable_data_cache()
+    #foo.enable_data_cache()
 
-    foo.load_csv('ga', train_path='gender_age_train.csv', test_path='gender_age_test.csv', target='group', index_col='device_id')
+    foo.load_csv('ga', train_path='gender_age_train.csv', test_path='gender_age_test.csv', target='group', opt=dict(index_col='device_id'))
     foo.load_csv('phone', 'phone_brand_device_model.csv')
-    foo.load_csv('events', 'events.csv', parse_dates=['timestamp'], index_col='event_id')
-    foo.load_csv('appevents','app_events.csv', usecols=['event_id','app_id','is_active'], dtype={'is_active':bool})
+    foo.load_csv('events', 'events.csv', opt=dict(parse_dates=['timestamp'], index_col='event_id'))
+    foo.load_csv('appevents','app_events.csv', opt=dict(usecols=['event_id','app_id','is_active'], dtype={'is_active':bool}))
     foo.load_csv('app_labels', 'app_labels.csv')
 
     drop_dup = fooml.feat_map('drop_dup', lambda df:df.drop_duplicates('device_id',keep='first').set_index('device_id'))

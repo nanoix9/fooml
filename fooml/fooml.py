@@ -128,9 +128,11 @@ class FooML(Model):
             if path is not None:
                 train_path = os.path.join(path, 'train')
                 test_path = os.path.join(path, 'test')
+            logger.debug('load training set of "%s"' % name)
             ds_train = load_train(self._get_data_path(train_path), **train_opt)
             if test_path is not None:
                 load_test = self._get_data_loader(test_type)
+                logger.debug('load testing set of "%s"' % name)
                 ds_test = load_test(self._get_data_path(test_path), **test_opt)
                 ds = (ds_train, ds_test)
             else:
@@ -142,11 +144,14 @@ class FooML(Model):
 
         return self.add_data(ds, name=name)
 
-    def load_csv(self, name, path=None, train_path=None, test_path=None, target=None, **opt):
-        train_opt = dict(opt)
+    def load_csv(self, name, train_path=None, test_path=None, target=None, opt={}):
+        test_opt = dict(opt=opt)
+        train_opt = dict(test_opt)
         train_opt['target'] = target
-        return self.load_train_test(name, path=path, train_path=train_path, test_path=test_path, \
-                train_type='csv', test_type='csv', train_opt=train_opt, test_opt=opt)
+        return self.load_train_test(name, \
+                train_path=train_path, test_path=test_path, \
+                train_type='csv', test_type='csv', \
+                train_opt=train_opt, test_opt=test_opt)
 
     def _get_data_path(self, path):
         if self._data_home and not path.startswith(os.path.sep):
