@@ -437,11 +437,11 @@ def __test1():
     #foo.add_trans('decide', 'decide', input='y.lr', output='y.lr.c')
     rep = evaluator('report') \
             .add_callback(before=lambda data: logger.info('before'), \
-                    after=lambda out: logger.info('after'), \
+                    after=lambda data, out: logger.info('after'), \
                     before_train=lambda data: logger.error('haha'), \
-                    after_train=lambda out: logger.fatal(out)) \
+                    after_train=lambda data, out: logger.fatal(out)) \
             .add_callback(before_train=lambda data: logger.error('wowo'), \
-                    after_train=lambda out: logger.fatal(out.__class__))
+                    after_train=lambda data, out: logger.fatal(out.__class__))
     #foo.save_output(['y.lr', 'y.lr.c'])
     #foo.save_output('y.lr')
 

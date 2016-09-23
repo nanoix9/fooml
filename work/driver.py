@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import sys
-sys.path.append("./")
 
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 

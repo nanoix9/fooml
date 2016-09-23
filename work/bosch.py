@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import sys
-sys.path.append("./")
 import numpy as np
 import fooml
 from fooml import env
@@ -14,7 +13,7 @@ def main():
     foo.set_data_home('/vola1/scndof/data/bosch')
     #foo.enable_data_cache()
 
-    foo.load_csv('ds_num', train_path='train_numeric.csv', target='Response', opt=dict(index_col='Id'))
+    foo.load_csv('ds_num', train_path='train_numeric.csv', target='Response', opt=dict(index_col='Id', nrows=100))
 
     foo.compile()
     foo.run_train()

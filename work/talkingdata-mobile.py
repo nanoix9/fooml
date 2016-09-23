@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import sys
-sys.path.append("./")
 import numpy as np
 import fooml
 from fooml import env
