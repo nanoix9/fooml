@@ -20,6 +20,7 @@ class ConfigEntry(object):
         self.opt = opt
 
 def get_config(package, name):
+    name = name.lower()
     if package == ANY:
         for p, c in __config.iteritems():
             #print p, c
@@ -92,12 +93,14 @@ __sklearn_config = {
 
         'targetencoder': (sk.TargMap, 'preprocessing', 'LabelEncoder'),
 
-        'LR': (sk.Clf, 'linear_model', 'LogisticRegression'),
-        'DecisionTree': (sk.Clf, 'tree', 'DecisionTreeClassifier'),
+        'lr': (sk.Clf, 'linear_model', 'LogisticRegression'),
+        'decisiontree': (sk.Clf, 'tree', 'DecisionTreeClassifier'),
+        'randomforest': (sk.Clf, 'ensemble', 'RandomForestClassifier'),
+
         #'random': (sk.Dummy, 'dummy', 'DummyClassifier', None, dict(strategy='stratified')),
         'random': (sk.Dummy, 'dummy', 'DummyClassifier', None, dict(strategy='uniform')),
 
-        'AUC': (sk.Eva, 'metrics', 'roc_auc_score'),
+        'auc': (sk.Eva, 'metrics', 'roc_auc_score'),
         'logloss': (sk.Eva, 'metrics', 'log_loss'),
         'report': (sk.Eva, 'metrics', 'classification_report'),
 

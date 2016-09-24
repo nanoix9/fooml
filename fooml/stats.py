@@ -148,7 +148,14 @@ def _summary(data):
     if isinstance(data, pd.DataFrame):
         sio = StringIO()
         data.info(buf=sio, verbose=True)
-        ret.append('type info: %s' % util.indent(sio.getvalue().strip(), ind=2))
+        text = sio.getvalue().strip()
+        arr = text.split('\n')
+        if len(arr) > 60:
+            lines = list(arr[0:30])
+            lines.append('...')
+            lines.extend(arr[-31:])
+            text = '\n'.join(lines)
+        ret.append('type info: %s' % util.indent(text, ind=2))
     else:
         ret.append('type: %s' % util.get_type_fullname(data))
 
@@ -192,8 +199,11 @@ def _summary(data):
 
 
     dh = df.head(5)
+    dt = df.tail(5)
     ret.append('head n:')
     ret.append([str(dh)])
+    ret.append('tail n:')
+    ret.append([str(dt)])
 
     if as_numeric:
         dn = df.describe().transpose()

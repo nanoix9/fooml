@@ -16,6 +16,7 @@ import comp.group
 import graph
 import factory
 import util
+import cli
 from dt import slist
 from log import logger
 
@@ -93,9 +94,19 @@ class FooML(Model):
         self._use_data_cache = False
         self._data_home = None
         self._data_load_routine = []
+        self._arg_parser = cli.get_parser()
 
         self.add_reporter(report.LogReporter())
         self.set_output_dir(os.path.join(settings.OUT_DIR, self._name))
+
+    def add_option(self):
+        pass
+
+    def parse_args(self, argv=None):
+        self._args = cli.parse_args(self._arg_parser, argv)
+        logger.info('command line arguments: %s' % self._args)
+        self.debug = self._args.debug
+        return self
 
     def add_reporter(self, reporter):
         self._reporter.add_reporter(reporter)

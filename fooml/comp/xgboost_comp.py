@@ -28,8 +28,9 @@ class XgboostComp(mixin.ClfMixin, comp.Comp):
         if isinstance(data, dataset.dsxy):
             Xt, yt = data
             Xv, yv = None, None
-            logger.info('best number of rounds: %s' % self._best_rounds)
-            kwds['num_boost_round'] = self._best_rounds[-1] + 1
+            if len(self._best_rounds) > 0:
+                logger.info('best number of rounds in history: %s' % self._best_rounds)
+                kwds['num_boost_round'] = self._best_rounds[-1] + 1
         elif isinstance(data, dataset.dstv):
             Xt, yt = data.train
             Xv, yv = data.valid
@@ -68,15 +69,15 @@ class XgboostComp(mixin.ClfMixin, comp.Comp):
         elif nb_class > 2:
             objective = 'multi:softprob'
         else:
-            raise ValueError('invalid number of classes')
+            raise ValueError('invalid number of classes: %d' % nb_class)
         xgb_params = {
                 #'booster': 'gblinear',
-                'booster': 'gbtree',
+                #'booster': 'gbtree',
                 'objective' : objective,
-                'eval_metric' : 'mlogloss',
-                'eta' : 0.005,
-                'lambda' : 3,
-                'alpha' : 2,
+                #'eval_metric' : 'mlogloss',
+                #'eta' : 0.005,
+                #'lambda' : 3,
+                #'alpha' : 2,
                 }
         return xgb_params
 
