@@ -42,6 +42,15 @@ def joins(str_list, sep='\n', ind=2):
     #sys.exit()
     return sep.join(ll)
 
+def limit_lines(text, limit=50):
+    arr = text.strip().split('\n')
+    if len(arr) > limit:
+        lines = list(arr[0:limit/2])
+        lines.append('...')
+        lines.extend(arr[-(limit/2+1):])
+        text = '\n'.join(lines)
+    return text
+
 ############ for dict ############
 def merge_dict_or_none(*dict_args):
     '''

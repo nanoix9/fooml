@@ -16,6 +16,8 @@ __summary_cache = {}
 
 settings.CACHE_DATA_SUMMARY_RESULT = False
 
+desc_level = 1
+
 def summary(data):
     #data_id = id(data)
     #if settings.CACHE_DATA_SUMMARY_RESULT:
@@ -148,18 +150,14 @@ def _summary(data):
     if isinstance(data, pd.DataFrame):
         sio = StringIO()
         data.info(buf=sio, verbose=True)
-        text = sio.getvalue().strip()
-        arr = text.split('\n')
-        if len(arr) > 60:
-            lines = list(arr[0:30])
-            lines.append('...')
-            lines.extend(arr[-31:])
-            text = '\n'.join(lines)
+        text = util.limit_lines(sio.getvalue(), 60)
         ret.append('type info: %s' % util.indent(text, ind=2))
     else:
         ret.append('type: %s' % util.get_type_fullname(data))
 
     ret.append('size: %s' % str(data.shape))
+    if desc_level <= 1:
+        return ret
 
     as_numeric = False
     if isinstance(data, (pd.Series, pd.DataFrame)):
@@ -204,6 +202,8 @@ def _summary(data):
     ret.append([str(dh)])
     ret.append('tail n:')
     ret.append([str(dt)])
+    if desc_level <= 2:
+        return ret
 
     if as_numeric:
         dn = df.describe().transpose()

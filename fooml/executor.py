@@ -24,14 +24,10 @@ class Executor(object):
     __OUTPUT__ = '__OUTPUT__'
     __NULL__ = '_'
 
-    def __init__(self, reporter=None, desc_data=False):
+    def __init__(self, reporter=None):
         self._reporter = reporter
         self._graph = None
         self._cgraph = None
-        self._is_desc_data = desc_data
-
-    def set_desc_data(self, flg):
-        self._is_desc_data = flg
 
     def set_reporter(self, reporter):
         self._reporter = reporter
@@ -69,8 +65,6 @@ class Executor(object):
                 util.indent(str(self._cgraph), 2))
 
     def _desc_data(self, data, names):
-        if not self._is_desc_data:
-            return
         if isinstance(names, (list, tuple)):
             #self._report('summary of data "%s":' % str(names))
             for i, d in enumerate(data):

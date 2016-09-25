@@ -106,6 +106,7 @@ class FooML(Model):
         self._args = cli.parse_args(self._arg_parser, argv)
         logger.info('command line arguments: %s' % self._args)
         self.debug = self._args.debug
+        stats.desc_level = self._args.desc_data
         return self
 
     def add_reporter(self, reporter):
@@ -245,8 +246,6 @@ class FooML(Model):
         self._report('Graph of computing components: %s' % self._graph)
 
     def compile(self):
-        if self._is_desc_data():
-            self._exec.set_desc_data(True)
         self._input = util.key_or_keys(self._ds_train)
         if self._outputs:
             self._output = self._outputs
@@ -262,8 +261,7 @@ class FooML(Model):
         self.show()
         self._exec.show()
 
-        if self._is_desc_data():
-            self.desc_data()
+        self.desc_data()
 
         self._report('Training ...')
         out = self._exec.run_train(self._ds_train, data_keyed=True)
@@ -306,10 +304,6 @@ class FooML(Model):
             else:
                 ds[k] = dataset.dsxy(v.X, None, v.index)
         return ds
-
-    def _is_desc_data(self):
-        return self._args.desc_data
-        #return self._args.debug or self._args.desc_data
 
     def desc_data(self):
         self._report('Quick Summary of Original Data')

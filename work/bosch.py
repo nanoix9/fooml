@@ -23,13 +23,14 @@ def main():
     else:
         nrows = None
         nb_fold = 5
+        #foo.enable_data_cache()
     foo.load_csv('ds_num', train_path='train_numeric.csv', target='Response', opt=dict(index_col='Id', nrows=nrows))
     #foo.load_csv('ds_date', train_path='train_date.csv', opt=dict(index_col='Id', nrows=nrows))
 
     pproc = fooml.feat_map('fillna', lambda x: x.fillna(0))
     #pproc = fooml.nop()
     xgbr = fooml.classifier('xgbr', 'xgboost', proba='only', opt=dict(params=dict()))
-    rf = fooml.classifier('rf', 'randomforest', proba='only', opt=dict())
+    rf = fooml.classifier('rf', 'randomforest', proba='only', opt=dict(n_estimators=10, min_samples_leaf=1, min_samples_split=100))
     auc = fooml.new_comp('auc', 'auc')
     use_dstv = False
 

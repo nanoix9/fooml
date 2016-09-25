@@ -12,8 +12,8 @@ def get_parser():
                         help="increase output verbosity")
     parser.add_argument("-d", "--debug", action="store_true",
                         help="enter debug mode")
-    parser.add_argument("-D", "--desc-data", action="store_true",
-                        help="describe data set for each input/output")
+    parser.add_argument("-D", "--desc-data", action="count", default=0,
+                        help="level of describing dataset for each input/output")
     return parser
 
 def parse_args(parser=None, argv=None):
