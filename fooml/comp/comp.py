@@ -6,6 +6,7 @@ import inspect
 from fooml.log import logger
 from fooml import util
 from fooml import env
+from fooml.dt import slist
 from fooml.proc import LazyObj
 
 
@@ -42,6 +43,9 @@ class Comp(object):
         desc = '%s(name="%s"\n%s)' % (full_name, self._name, util.indent(desc, 2))
         return desc
         #return '%s(obj=%s)' % (self.__class__.__name__, self._obj)
+
+    def is_ready(self, input):
+        return all(d is not None for d in slist.iter_multi(input))
 
     def fit(self, data):
         raise NotImplementedError()

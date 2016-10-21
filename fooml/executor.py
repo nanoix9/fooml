@@ -6,6 +6,7 @@
 #from __future__ import print_function
 
 import sys
+import itertools
 import env
 import comp
 import comp.group
@@ -157,10 +158,11 @@ class Executor(object):
         input_buff = self._create_input_buff()
         #print 'input buff', input_buff
 
-        pending = collections.deque(i for i, _ in enumerate(task_seq))
+        #pending = collections.deque(i+1 for i, _ in enumerate(task_seq[1:-1]))
+        nb_tasks = len(task_seq)
 
         # run input
-        curr_task_no = pending.popleft()
+        curr_task_no = 0
         c_name, entry = task_seq[curr_task_no]
         if c_name != Executor.__INPUT__:
             raise ValueError('First task should be input!')
@@ -169,31 +171,41 @@ class Executor(object):
         self._emit_data_by_index(data, curr_task_no, input_buff)
         self._report_levelup()
 
-        while pending:
-            curr_task_no = pending.popleft()
+        # round-robin execution for tasks
+        last_exec = -1
+        for curr_task_no in itertools.cycle(range(1, nb_tasks-1)):
             c_name, c_entry = task_seq[curr_task_no]
             curr_input = input_buff[curr_task_no]
-            if c_name == Executor.__OUTPUT__:
-                self._report('Task %d Ouput: assign output results' % curr_task_no)
-                self._report_leveldown()
-                self._desc_data(curr_input, self._graph._out)
-                ret = curr_input
-                self._report_levelup()
-            else:
-                if not self._is_input_ready(curr_input):
-                    raise ValueError('Task %s does not recieve all input data' % c_name)
-                c_obj, c_inp, c_out = c_entry
-                self._report('Task %d: train component "%s", input="%s", output="%s"' \
-                    % (curr_task_no, c_name, c_inp, c_out))
-                self._report_leveldown()
-                self._report('Summary of input of "%s": %s' % (c_name, c_inp))
-                self._desc_data(curr_input, c_inp)
-                out = self._run_iter(c_obj, curr_input, func)
-                self._report('Summary of output of "%s": %s' % (c_name, c_out))
-                self._desc_data(out, c_out)
-                self._emit_data_by_index(out, curr_task_no, input_buff)
-                input_buff[curr_task_no] = None  # clean input data
-                self._report_levelup()
+            c_obj, c_inp, c_out = c_entry
+            if not self._is_input_ready(c_obj, curr_input):
+                #raise ValueError('Task %s does not recieve all input data' % c_name)
+                if last_exec == curr_task_no:
+                    break
+                continue
+            self._report('Task %d ready: component "%s", input="%s", output="%s"' \
+                % (curr_task_no, c_name, c_inp, c_out))
+            self._report_leveldown()
+            self._report('Summary of input of "%s": %s' % (c_name, c_inp))
+            self._desc_data(curr_input, c_inp)
+            out = self._run_iter(c_obj, curr_input, func)
+            self._report('Summary of output of "%s": %s' % (c_name, c_out))
+            self._desc_data(out, c_out)
+            self._emit_data_by_index(out, curr_task_no, input_buff)
+            input_buff[curr_task_no] = None  # clean input data
+            self._report_levelup()
+            last_exec = curr_task_no
+
+        curr_task_no = nb_tasks - 1
+        c_name, c_entry = task_seq[curr_task_no]
+        curr_input = input_buff[curr_task_no]
+        if c_name != Executor.__OUTPUT__:
+            raise ValueError('Last task should be output!')
+        self._report('Task %d Ouput: assign output results' % curr_task_no)
+        self._report_leveldown()
+        self._desc_data(curr_input, self._graph._out)
+        ret = curr_input
+        self._report_levelup()
+
         return ret
 
     def _create_input_buff(self):
@@ -205,9 +217,10 @@ class Executor(object):
         buff = [ slist.nones_like(inp) for inp in _iter_task_inp() ]
         return buff
 
-    def _is_input_ready(self, buff):
+    def _is_input_ready(self, acomp, buff):
         #print '-----> _is_input_ready:', buff
-        return all([ d is not None for d in slist.iter_multi(buff)])
+        #return all(d is not None for d in slist.iter_multi(buff))
+        return acomp.is_ready(buff)
 
     def _emit_data_by_index(self, data, task_no, input_buff):
         oimap = self._cgraph._oimap[task_no]

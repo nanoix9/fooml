@@ -30,7 +30,7 @@ def main():
     pproc = fooml.feat_map('fillna', lambda x: x.fillna(0))
     #pproc = fooml.nop()
     xgbr = fooml.classifier('xgbr', 'xgboost', proba='only', opt=dict(params=dict()))
-    rf = fooml.classifier('rf', 'randomforest', proba='only', opt=dict(n_estimators=10, min_samples_leaf=1, min_samples_split=100))
+    rf = fooml.classifier('rf', 'randomforest', proba='only', opt=dict(n_estimators=10, min_samples_leaf=20, min_samples_split=50))
     auc = fooml.new_comp('auc', 'auc')
     use_dstv = False
 

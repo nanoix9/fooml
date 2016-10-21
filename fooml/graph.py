@@ -130,7 +130,8 @@ class CompGraph(object):
             curr_node = stack.pop()
             logger.debug('visits node "%s"' % (curr_node))
             if curr_node in visited and curr_node != __NULL__:
-                raise ValueError('node "%s" has already been visited' % curr_node)
+                logger.debug('node "%s" has already been visited, loop found' % curr_node)
+                continue
             visited.add(curr_node)
             for f, t, comp_name, acomp in self._edges_with_attr(curr_node, attr=('name', 'comp')):
                 logger.debug('+ checking edge: %s -(%s)-> %s' % (f, comp_name, t)) #, acomp)
@@ -350,13 +351,14 @@ def test_graph():
     print gcomp
 
 def test_compile():
-    gcomp = CompGraph('test_graph', inp=['input', 'x'], out='y')
+    gcomp = CompGraph('test_graph2', inp=['input', 'x'], out='y')
     gcomp.add_comp('c1', comp.PassComp(), 'x', 'u')
     gcomp.add_comp('c2', comp.ConstComp(1), ['input', 'u'], 'z')
     #gsub1 = graph.CompGraph('subgraph1', inp='s1', out='y1')
     #gsub1.add_comp('c31', comp.PassComp(), 's1', 'y1')
     #gcomp.add_comp('g3', gsub1, 'z', 'y')
     gcomp.add_comp('g3', comp.PassComp(), 'z', 'y')
+    gcomp.add_comp('g4', comp.PassComp(), 'z', 'u')
     print gcomp
 
     cg = _CompiledGraph()
